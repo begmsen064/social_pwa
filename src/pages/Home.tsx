@@ -9,7 +9,7 @@ import PostCard from '../components/PostCard';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { user, refreshUser } = useAuthStore();
+  const { user } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
