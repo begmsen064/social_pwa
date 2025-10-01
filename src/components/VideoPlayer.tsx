@@ -192,6 +192,7 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false }: VideoPlay
     <div 
       ref={containerRef}
       className={`relative bg-black ${className}`}
+      style={{ minHeight: '100%' }}
       onMouseMove={handleMouseMove}
       onClick={togglePlayPause}
     >
@@ -200,6 +201,7 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false }: VideoPlay
         ref={videoRef}
         src={src}
         className="w-full h-full object-contain"
+        style={{ minHeight: '100%' }}
         playsInline
         loop
         muted={isMuted}
