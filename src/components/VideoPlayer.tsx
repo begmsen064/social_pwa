@@ -78,6 +78,35 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false }: VideoPlay
     };
   }, []);
 
+  // Auto-pause video when scrolled out of view
+  useEffect(() => {
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!container || !video) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // If video is less than 50% visible and playing, pause it
+          if (!entry.isIntersecting || entry.intersectionRatio < 0.5) {
+            if (!video.paused) {
+              video.pause();
+            }
+          }
+        });
+      },
+      {
+        threshold: 0.5, // Trigger when 50% of video is visible
+      }
+    );
+
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   // Retry loading video if error
   const retryVideo = () => {
     const video = videoRef.current;
