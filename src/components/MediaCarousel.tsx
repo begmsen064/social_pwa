@@ -89,28 +89,31 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
       <div 
         ref={containerRef}
         className="relative w-full bg-black rounded-lg overflow-hidden"
+        style={{ height: '500px' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Media Content */}
-        {currentMedia.media_type === 'image' ? (
-          <img
-            src={currentMedia.media_url}
-            alt={`Media ${currentIndex + 1}`}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-auto max-h-[600px] object-contain select-none cursor-pointer"
-            onClick={() => setShowFullscreen(true)}
-            draggable={false}
-          />
-        ) : (
-          <VideoPlayer
-            src={currentMedia.media_url}
-            className="w-full h-auto max-h-[600px]"
-            autoPlay={false}
-          />
-        )}
+        {/* Media Content - Fixed height with letterboxing */}
+        <div className="w-full h-full flex items-center justify-center">
+          {currentMedia.media_type === 'image' ? (
+            <img
+              src={currentMedia.media_url}
+              alt={`Media ${currentIndex + 1}`}
+              loading="lazy"
+              decoding="async"
+              className="max-w-full max-h-full object-contain select-none cursor-pointer"
+              onClick={() => setShowFullscreen(true)}
+              draggable={false}
+            />
+          ) : (
+            <VideoPlayer
+              src={currentMedia.media_url}
+              className="max-w-full max-h-full"
+              autoPlay={false}
+            />
+          )}
+        </div>
 
       {/* Dots Indicator - Only if multiple media */}
       {media.length > 1 && (
