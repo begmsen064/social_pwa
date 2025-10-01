@@ -21,6 +21,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const lastScaleRef = useRef(1);
   const lastTranslateRef = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasPinchedRef = useRef(false); // Track if user has actually pinched
 
   if (!media || media.length === 0) return null;
 
@@ -43,10 +44,11 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
     if (e.touches.length === 2) {
       e.preventDefault();
       setIsZooming(true);
+      hasPinchedRef.current = false; // Reset pinch flag
       initialDistanceRef.current = getDistance(e.touches);
       lastScaleRef.current = scale;
       
-      // Calculate center point between two fingers
+      // Calculate center point between two fingers relative to the image
       const container = containerRef.current;
       if (container) {
         const rect = container.getBoundingClientRect();
@@ -73,14 +75,27 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
       // Prevent viewport zoom when pinching
       e.preventDefault();
       const currentDistance = getDistance(e.touches);
-      let newScale = (currentDistance / initialDistanceRef.current) * lastScaleRef.current;
+      const newScale = (currentDistance / initialDistanceRef.current) * lastScaleRef.current;
       
-      // Smooth scaling with dampening
-      const scaleDiff = newScale - lastScaleRef.current;
-      newScale = lastScaleRef.current + (scaleDiff * 0.5);
-      newScale = Math.min(Math.max(newScale, 1), 3);
+      // Clamp between 1x and 3x - smooth, no dampening for instant response
+      const clampedScale = Math.min(Math.max(newScale, 1), 3);
       
-      setScale(newScale);
+      // Mark that user has actually pinched (not just touched with 2 fingers)
+      if (Math.abs(clampedScale - lastScaleRef.current) > 0.05) {
+        hasPinchedRef.current = true;
+      }
+      
+      setScale(clampedScale);
+      
+      // Update zoom center dynamically during pinch
+      const container = containerRef.current;
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        const centerX = ((e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left - rect.width / 2);
+        const centerY = ((e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top - rect.height / 2);
+        setZoomCenterX(centerX);
+        setZoomCenterY(centerY);
+      }
     } else if (e.touches.length === 1) {
       if (scale > 1.1) {
         e.preventDefault();
@@ -94,7 +109,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
         setTranslateX(newX);
         setTranslateY(newY);
       } else {
-        // Track for swipe navigation
+        // Track for swipe navigation only if not zoomed
         touchEndXRef.current = e.touches[0].clientX;
       }
     }
@@ -103,8 +118,9 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const handleTouchEnd = () => {
     if (currentMedia.media_type !== 'image') return;
 
-    // Handle swipe navigation ONLY if not zooming and scale is normal
-    if (!isZooming && scale <= 1.1 && media.length > 1) {
+    // Handle swipe navigation ONLY if user hasn't pinched and scale is normal
+    // This prevents accidental image changes when starting a pinch gesture
+    if (!hasPinchedRef.current && !isZooming && scale <= 1.1 && media.length > 1) {
       const swipeDistance = touchStartXRef.current - touchEndXRef.current;
       const minSwipeDistance = 75;
 
@@ -126,6 +142,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
     setIsZooming(false);
     setZoomCenterX(0);
     setZoomCenterY(0);
+    hasPinchedRef.current = false;
     lastScaleRef.current = 1;
     lastTranslateRef.current = { x: 0, y: 0 };
 
