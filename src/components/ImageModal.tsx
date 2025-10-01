@@ -107,17 +107,30 @@ const ImageModal = ({ media, initialIndex, isOpen, onClose }: ImageModalProps) =
       // Two fingers - pinch zoom
       e.preventDefault();
       const currentDistance = getDistance(e.touches);
-      const newScale = (currentDistance / initialDistanceRef.current) * lastScaleRef.current;
-      // Limit scale between 1x and 4x
-      setScale(Math.min(Math.max(newScale, 1), 4));
+      let newScale = (currentDistance / initialDistanceRef.current) * lastScaleRef.current;
+      
+      // Smooth scaling with dampening
+      const scaleDiff = newScale - lastScaleRef.current;
+      newScale = lastScaleRef.current + (scaleDiff * 0.5); // 50% dampening
+      
+      // Limit scale between 1x and 3x (reduced max)
+      newScale = Math.min(Math.max(newScale, 1), 3);
+      
+      setScale(newScale);
     } else if (e.touches.length === 1) {
-      if (scale > 1) {
-        // Zoomed - pan
+      if (scale > 1.1) { // Only pan if significantly zoomed
+        // Zoomed - pan with bounds
         e.preventDefault();
         const deltaX = e.touches[0].clientX - touchStartXRef.current;
         const deltaY = e.touches[0].clientY - touchStartYRef.current;
-        setTranslateX(lastTranslateRef.current.x + deltaX);
-        setTranslateY(lastTranslateRef.current.y + deltaY);
+        
+        // Limit pan range based on zoom level
+        const maxPan = 300 * scale;
+        const newX = Math.min(Math.max(lastTranslateRef.current.x + deltaX, -maxPan), maxPan);
+        const newY = Math.min(Math.max(lastTranslateRef.current.y + deltaY, -maxPan), maxPan);
+        
+        setTranslateX(newX);
+        setTranslateY(newY);
       } else {
         // Not zoomed - track for swipe navigation
         touchEndXRef.current = e.touches[0].clientX;
@@ -127,7 +140,7 @@ const ImageModal = ({ media, initialIndex, isOpen, onClose }: ImageModalProps) =
 
   const handleTouchEnd = () => {
     // If zoomed out completely, reset position
-    if (scale <= 1.1 && scale !== 1) {
+    if (scale <= 1.15) {
       setScale(1);
       setTranslateX(0);
       setTranslateY(0);
@@ -136,16 +149,14 @@ const ImageModal = ({ media, initialIndex, isOpen, onClose }: ImageModalProps) =
     }
 
     // Only handle swipe navigation if not zoomed
-    if (scale === 1) {
+    if (scale <= 1.1) {
       const swipeDistance = touchStartXRef.current - touchEndXRef.current;
-      const minSwipeDistance = 75; // Increased threshold
+      const minSwipeDistance = 75;
 
       if (Math.abs(swipeDistance) >= minSwipeDistance) {
         if (swipeDistance > 0) {
-          // Swiped left -> next
           goToNext();
         } else {
-          // Swiped right -> previous
           goToPrevious();
         }
       }
@@ -159,16 +170,19 @@ const ImageModal = ({ media, initialIndex, isOpen, onClose }: ImageModalProps) =
   // Double tap to zoom
   const handleDoubleTap = () => {
     if (scale > 1) {
-      // Zoom out
+      // Zoom out with animation
       setScale(1);
       setTranslateX(0);
       setTranslateY(0);
       lastScaleRef.current = 1;
       lastTranslateRef.current = { x: 0, y: 0 };
     } else {
-      // Zoom in to 2x
+      // Zoom in to 2x (reduced from 2x to be more reasonable)
       setScale(2);
       lastScaleRef.current = 2;
+      setTranslateX(0);
+      setTranslateY(0);
+      lastTranslateRef.current = { x: 0, y: 0 };
     }
   };
 
@@ -213,13 +227,14 @@ const ImageModal = ({ media, initialIndex, isOpen, onClose }: ImageModalProps) =
           <img
             src={currentMedia.media_url}
             alt={`Media ${currentIndex + 1}`}
-            className="max-w-full max-h-full object-contain select-none transition-transform"
+            className="max-w-full max-h-full object-contain select-none"
             loading="lazy"
             onDoubleClick={handleDoubleTap}
             style={{
               transform: `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`,
               cursor: scale > 1 ? 'move' : 'zoom-in',
               touchAction: scale > 1 ? 'none' : 'pan-y',
+              transition: scale === 1 ? 'transform 0.3s ease-out' : 'none',
             }}
             draggable={false}
           />
