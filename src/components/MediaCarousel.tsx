@@ -8,6 +8,7 @@ interface MediaCarouselProps {
 
 const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showFullscreen, setShowFullscreen] = useState(false);
   const [isZooming, setIsZooming] = useState(false);
   
   // Use refs for smooth, lag-free zoom and pan
@@ -24,9 +25,10 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const lastScaleRef = useRef(1);
   const lastTranslateRef = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
+  const fullscreenImageRef = useRef<HTMLImageElement>(null);
   const hasPinchedRef = useRef(false);
   const isPanningRef = useRef(false);
+  const animationFrameRef = useRef<number>();
 
   if (!media || media.length === 0) return null;
 
@@ -42,23 +44,27 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
     );
   };
 
-  // Apply transform directly to DOM for smooth, lag-free updates
+  // Apply transform directly to DOM for smooth, lag-free updates using RAF
   const applyTransform = () => {
-    if (imageRef.current) {
-      const scale = scaleRef.current;
-      const x = translateXRef.current;
-      const y = translateYRef.current;
-      const zoomX = zoomCenterXRef.current;
-      const zoomY = zoomCenterYRef.current;
-      
-      imageRef.current.style.transform = `scale(${scale}) translate(${(x + zoomX * (scale - 1)) / scale}px, ${(y + zoomY * (scale - 1)) / scale}px)`;
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
     }
+    
+    animationFrameRef.current = requestAnimationFrame(() => {
+      if (fullscreenImageRef.current) {
+        const scale = scaleRef.current;
+        const x = translateXRef.current;
+        const y = translateYRef.current;
+        const zoomX = zoomCenterXRef.current;
+        const zoomY = zoomCenterYRef.current;
+        
+        fullscreenImageRef.current.style.transform = `scale(${scale}) translate(${(x + zoomX * (scale - 1)) / scale}px, ${(y + zoomY * (scale - 1)) / scale}px)`;
+      }
+    });
   };
 
-  // Handle touch gestures
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (currentMedia.media_type !== 'image') return;
-
+  // Handle touch gestures in fullscreen modal
+  const handleFullscreenTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       e.preventDefault();
       e.stopPropagation();
@@ -70,9 +76,9 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
       lastScaleRef.current = scaleRef.current;
       
       // Calculate center point between two fingers
-      const container = containerRef.current;
-      if (container) {
-        const rect = container.getBoundingClientRect();
+      const img = fullscreenImageRef.current;
+      if (img) {
+        const rect = img.getBoundingClientRect();
         const centerX = ((e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left - rect.width / 2);
         const centerY = ((e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top - rect.height / 2);
         zoomCenterXRef.current = centerX;
@@ -90,9 +96,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
     }
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (currentMedia.media_type !== 'image') return;
-
+  const handleFullscreenTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       // Pinch zoom
       e.preventDefault();
@@ -103,16 +107,16 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
       const clampedScale = Math.min(Math.max(newScale, 1), 4);
       
       // Mark as pinched if significant scale change
-      if (Math.abs(clampedScale - lastScaleRef.current) > 0.1) {
+      if (Math.abs(clampedScale - lastScaleRef.current) > 0.05) {
         hasPinchedRef.current = true;
       }
       
       scaleRef.current = clampedScale;
       
       // Update zoom center dynamically
-      const container = containerRef.current;
-      if (container) {
-        const rect = container.getBoundingClientRect();
+      const img = fullscreenImageRef.current;
+      if (img) {
+        const rect = img.getBoundingClientRect();
         const centerX = ((e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left - rect.width / 2);
         const centerY = ((e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top - rect.height / 2);
         zoomCenterXRef.current = centerX;
@@ -144,16 +148,14 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
     }
   };
 
-  const handleTouchEnd = () => {
-    if (currentMedia.media_type !== 'image') return;
-
+  const handleFullscreenTouchEnd = () => {
     // Handle swipe navigation ONLY if:
     // - User hasn't pinched
     // - Not currently panning
     // - Scale is normal
     if (!hasPinchedRef.current && !isPanningRef.current && !isZooming && scaleRef.current <= 1.1 && media.length > 1) {
       const swipeDistance = touchStartXRef.current - touchEndXRef.current;
-      const minSwipeDistance = 75;
+      const minSwipeDistance = 100; // Higher threshold to prevent accidental changes
 
       if (Math.abs(swipeDistance) >= minSwipeDistance) {
         if (swipeDistance > 0) {
@@ -182,9 +184,17 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
     touchEndXRef.current = 0;
     
     // Reset transform
-    if (imageRef.current) {
-      imageRef.current.style.transform = 'scale(1) translate(0px, 0px)';
+    if (fullscreenImageRef.current) {
+      fullscreenImageRef.current.style.transform = 'scale(1) translate(0px, 0px)';
     }
+  };
+
+  const closeFullscreen = () => {
+    setShowFullscreen(false);
+    scaleRef.current = 1;
+    translateXRef.current = 0;
+    translateYRef.current = 0;
+    setIsZooming(false);
   };
 
   return (
@@ -192,23 +202,16 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
       <div 
         ref={containerRef}
         className="relative w-full bg-black rounded-lg overflow-hidden"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
         {/* Media Content */}
         {currentMedia.media_type === 'image' ? (
           <img
-            ref={imageRef}
             src={currentMedia.media_url}
             alt={`Media ${currentIndex + 1}`}
             loading="lazy"
             decoding="async"
-            className="w-full h-auto max-h-[600px] object-contain select-none transition-transform"
-            style={{
-              transformOrigin: 'center',
-              touchAction: 'none',
-            }}
+            className="w-full h-auto max-h-[600px] object-contain select-none cursor-pointer"
+            onClick={() => setShowFullscreen(true)}
             draggable={false}
           />
         ) : (
@@ -249,24 +252,53 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
         )}
       </div>
 
-      {/* Fullscreen Zoom Overlay - Instagram Style */}
-      {isZooming && scaleRef.current > 1 && currentMedia.media_type === 'image' && (
-        <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center">
-          <img
-            src={currentMedia.media_url}
-            alt={`Media ${currentIndex + 1}`}
-            className="max-w-full max-h-full object-contain select-none"
-            style={{
-              transform: `scale(${scaleRef.current}) translate(${(translateXRef.current + zoomCenterXRef.current * (scaleRef.current - 1)) / scaleRef.current}px, ${(translateYRef.current + zoomCenterYRef.current * (scaleRef.current - 1)) / scaleRef.current}px)`,
-              transformOrigin: 'center',
-              touchAction: 'none',
-            }}
-            draggable={false}
-          />
-          {/* Zoom Level Indicator */}
-          <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/60 text-white text-sm rounded-full backdrop-blur-sm">
-            {scaleRef.current.toFixed(1)}x
+      {/* Fullscreen Modal - Instagram Style */}
+      {showFullscreen && currentMedia.media_type === 'image' && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black"
+          onTouchStart={handleFullscreenTouchStart}
+          onTouchMove={handleFullscreenTouchMove}
+          onTouchEnd={handleFullscreenTouchEnd}
+        >
+          {/* Close button */}
+          <button
+            onClick={closeFullscreen}
+            className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+            aria-label="Close"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Image container */}
+          <div className="w-full h-full flex items-center justify-center">
+            <img
+              ref={fullscreenImageRef}
+              src={currentMedia.media_url}
+              alt={`Media ${currentIndex + 1}`}
+              className="max-w-full max-h-full object-contain select-none"
+              style={{
+                transformOrigin: 'center',
+                touchAction: 'none',
+              }}
+              draggable={false}
+            />
           </div>
+
+          {/* Zoom Level Indicator */}
+          {scaleRef.current > 1.1 && (
+            <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/60 text-white text-sm rounded-full backdrop-blur-sm">
+              {scaleRef.current.toFixed(1)}x
+            </div>
+          )}
+
+          {/* Image counter for multiple images */}
+          {media.length > 1 && (
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/60 text-white text-sm rounded-full backdrop-blur-sm">
+              {currentIndex + 1} / {media.length}
+            </div>
+          )}
         </div>
       )}
     </>
