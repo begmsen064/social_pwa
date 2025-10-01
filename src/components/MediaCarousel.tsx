@@ -4,15 +4,20 @@ import { VideoPlayer } from './VideoPlayer';
 
 interface MediaCarouselProps {
   media: PostMedia[];
+  onDoubleTap?: () => void;
+  isLiked?: boolean;
 }
 
-const MediaCarousel = ({ media }: MediaCarouselProps) => {
+const MediaCarousel = ({ media, onDoubleTap, isLiked }: MediaCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showFullscreen, setShowFullscreen] = useState(false);
+  const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   
   const touchStartXRef = useRef(0);
   const touchEndXRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastTapRef = useRef(0);
+  const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   if (!media || media.length === 0) return null;
 
@@ -103,7 +108,41 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
               loading="lazy"
               decoding="async"
               className="max-w-full max-h-full object-contain select-none cursor-pointer"
-              onClick={() => setShowFullscreen(true)}
+              onClick={(e) => {
+                const now = Date.now();
+                const DOUBLE_TAP_DELAY = 300;
+
+                // Check for double tap
+                if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+                  // Double tap detected
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  // Clear single tap timer
+                  if (singleTapTimerRef.current) {
+                    clearTimeout(singleTapTimerRef.current);
+                    singleTapTimerRef.current = null;
+                  }
+                  
+                  // Handle double tap (like)
+                  if (onDoubleTap) {
+                    onDoubleTap();
+                    // Show animation only when liking
+                    if (!isLiked) {
+                      setShowHeartAnimation(true);
+                      setTimeout(() => setShowHeartAnimation(false), 1000);
+                    }
+                  }
+                } else {
+                  // Single tap - wait to see if it's a double tap
+                  singleTapTimerRef.current = setTimeout(() => {
+                    setShowFullscreen(true);
+                    singleTapTimerRef.current = null;
+                  }, DOUBLE_TAP_DELAY);
+                }
+                
+                lastTapRef.current = now;
+              }}
               draggable={false}
             />
           ) : (
@@ -141,6 +180,22 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
         {media.length > 1 && (
           <div className="absolute top-4 right-4 px-3 py-1 bg-black/70 text-white text-sm rounded-full backdrop-blur-sm">
             {currentIndex + 1} / {media.length}
+          </div>
+        )}
+        
+        {/* Double Tap Heart Animation */}
+        {showHeartAnimation && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <svg
+              className="w-24 h-24 text-white drop-shadow-2xl"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              style={{
+                animation: 'ping 1s cubic-bezier(0, 0, 0.2, 1) 1',
+              }}
+            >
+              <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+            </svg>
           </div>
         )}
       </div>
