@@ -17,15 +17,6 @@ export const CommentsModal = ({ isOpen, onClose, postId, onCommentAdded }: Comme
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Focus input when modal opens
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-    }
-  }, [isOpen]);
-
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
