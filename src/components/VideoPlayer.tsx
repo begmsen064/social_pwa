@@ -173,8 +173,23 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
         return; // Don't toggle play/pause on double tap
       }
       
+      // Single tap - wait to see if it's a double tap
       lastTapRef.current = now;
+      singleTapTimerRef.current = setTimeout(() => {
+        singleTapTimerRef.current = null;
+        // Now execute the play/pause
+        performPlayPause();
+      }, DOUBLE_TAP_DELAY);
+      return;
     }
+
+    // If no double-tap handler, just play/pause immediately
+    await performPlayPause();
+  };
+
+  const performPlayPause = async () => {
+    const video = videoRef.current;
+    if (!video || hasError) return;
 
     try {
       if (isPlaying) {
