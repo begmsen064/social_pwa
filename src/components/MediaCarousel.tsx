@@ -28,7 +28,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const fullscreenImageRef = useRef<HTMLImageElement>(null);
   const hasPinchedRef = useRef(false);
   const isPanningRef = useRef(false);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
 
   if (!media || media.length === 0) return null;
 
