@@ -276,22 +276,38 @@ const Home = () => {
   const handleTouchStart = (e: React.TouchEvent) => {
     if (containerRef.current && containerRef.current.scrollTop === 0) {
       touchStartY.current = e.touches[0].clientY;
+    } else {
+      // Not at top, reset
+      touchStartY.current = 0;
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    // Only work if we started at the top
+    if (touchStartY.current === 0) return;
+    
+    // Check if still at top
     if (containerRef.current && containerRef.current.scrollTop === 0) {
       const touchY = e.touches[0].clientY;
       const distance = touchY - touchStartY.current;
       
+      // Only activate on pull DOWN (positive distance)
       if (distance > 0 && distance < 150) {
         setPullDistance(distance);
+      } else if (distance < 0) {
+        // Started pulling up, reset
+        touchStartY.current = 0;
+        setPullDistance(0);
       }
+    } else {
+      // Scrolled away from top, reset
+      touchStartY.current = 0;
+      setPullDistance(0);
     }
   };
 
   const handleTouchEnd = async () => {
-    if (pullDistance > 80) {
+    if (pullDistance > 80 && touchStartY.current > 0) {
       await handleRefresh();
     }
     setPullDistance(0);
