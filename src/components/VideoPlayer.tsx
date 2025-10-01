@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Volume2, VolumeX, Play } from 'lucide-react';
+import { Volume2, VolumeX, Play, Maximize, Minimize } from 'lucide-react';
 
 interface VideoPlayerProps {
   src: string;
@@ -16,7 +16,9 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false }: VideoPlay
   const [showPlayIcon, setShowPlayIcon] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -114,6 +116,37 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false }: VideoPlay
     setShowControls(true);
   };
 
+  const toggleFullscreen = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const container = containerRef.current;
+    if (!container) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await container.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      console.error('Error toggling fullscreen:', error);
+    }
+    setShowControls(true);
+  };
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   const handleMouseMove = () => {
     setShowControls(true);
   };
@@ -131,6 +164,7 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false }: VideoPlay
 
   return (
     <div 
+      ref={containerRef}
       className={`relative bg-black ${className}`}
       onMouseMove={handleMouseMove}
       onClick={togglePlayPause}
@@ -201,28 +235,43 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false }: VideoPlay
         {/* Bottom Gradient */}
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/50 to-transparent" />
 
-        {/* Mute/Unmute Button */}
-        <button
-          onClick={toggleMute}
-          className="absolute top-4 right-4 p-2 bg-black/60 rounded-full hover:bg-black/80 transition pointer-events-auto"
-        >
-          {isMuted ? (
-            <VolumeX className="w-5 h-5 text-white" />
-          ) : (
-            <Volume2 className="w-5 h-5 text-white" />
-          )}
-        </button>
+        {/* Top Right Controls */}
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          {/* Mute/Unmute Button */}
+          <button
+            onClick={toggleMute}
+            className="p-2 bg-black/60 rounded-full hover:bg-black/80 transition pointer-events-auto"
+          >
+            {isMuted ? (
+              <VolumeX className="w-5 h-5 text-white" />
+            ) : (
+              <Volume2 className="w-5 h-5 text-white" />
+            )}
+          </button>
 
-        {/* Progress Bar */}
-        <div
-          className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 cursor-pointer pointer-events-auto"
-          onClick={handleProgressClick}
-        >
-          <div
-            className="h-full bg-white transition-all duration-100"
-            style={{ width: `${progress}%` }}
-          />
+          {/* Fullscreen Button */}
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 bg-black/60 rounded-full hover:bg-black/80 transition pointer-events-auto"
+          >
+            {isFullscreen ? (
+              <Minimize className="w-5 h-5 text-white" />
+            ) : (
+              <Maximize className="w-5 h-5 text-white" />
+            )}
+          </button>
         </div>
+      </div>
+
+      {/* Progress Bar - Always Visible */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 cursor-pointer pointer-events-auto z-10"
+        onClick={handleProgressClick}
+      >
+        <div
+          className="h-full bg-white transition-all duration-100"
+          style={{ width: `${progress}%` }}
+        />
       </div>
     </div>
   );
