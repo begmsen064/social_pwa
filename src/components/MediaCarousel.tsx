@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { PostMedia } from '../types';
-import ImageModal from './ImageModal';
 import { VideoPlayer } from './VideoPlayer';
 
 interface MediaCarouselProps {
@@ -9,8 +8,15 @@ interface MediaCarouselProps {
 
 const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalIndex, setModalIndex] = useState(0);
+  const [scale, setScale] = useState(1);
+  const [translateX, setTranslateX] = useState(0);
+  const [translateY, setTranslateY] = useState(0);
+  const touchStartXRef = useRef(0);
+  const touchEndXRef = useRef(0);
+  const touchStartYRef = useRef(0);
+  const initialDistanceRef = useRef(0);
+  const lastScaleRef = useRef(1);
+  const lastTranslateRef = useRef({ x: 0, y: 0 });
 
   if (!media || media.length === 0) return null;
 
@@ -28,28 +34,105 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
 
   const currentMedia = media[currentIndex];
 
-  const openModal = () => {
-    setModalIndex(currentIndex);
-    setModalOpen(true);
+  // Get distance between two touch points
+  const getDistance = (touches: React.TouchList) => {
+    const touch1 = touches[0];
+    const touch2 = touches[1];
+    return Math.hypot(
+      touch2.clientX - touch1.clientX,
+      touch2.clientY - touch1.clientY
+    );
+  };
+
+  // Handle touch gestures
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (currentMedia.media_type !== 'image') return;
+
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      initialDistanceRef.current = getDistance(e.touches);
+      lastScaleRef.current = scale;
+    } else if (e.touches.length === 1) {
+      touchStartXRef.current = e.touches[0].clientX;
+      touchEndXRef.current = e.touches[0].clientX;
+      touchStartYRef.current = e.touches[0].clientY;
+      
+      if (scale > 1) {
+        lastTranslateRef.current = { x: translateX, y: translateY };
+      }
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (currentMedia.media_type !== 'image') return;
+
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const currentDistance = getDistance(e.touches);
+      let newScale = (currentDistance / initialDistanceRef.current) * lastScaleRef.current;
+      
+      // Smooth scaling with dampening
+      const scaleDiff = newScale - lastScaleRef.current;
+      newScale = lastScaleRef.current + (scaleDiff * 0.5);
+      newScale = Math.min(Math.max(newScale, 1), 3);
+      
+      setScale(newScale);
+    } else if (e.touches.length === 1) {
+      if (scale > 1.1) {
+        e.preventDefault();
+        const deltaX = e.touches[0].clientX - touchStartXRef.current;
+        const deltaY = e.touches[0].clientY - touchStartYRef.current;
+        
+        const maxPan = 300 * scale;
+        const newX = Math.min(Math.max(lastTranslateRef.current.x + deltaX, -maxPan), maxPan);
+        const newY = Math.min(Math.max(lastTranslateRef.current.y + deltaY, -maxPan), maxPan);
+        
+        setTranslateX(newX);
+        setTranslateY(newY);
+      } else {
+        touchEndXRef.current = e.touches[0].clientX;
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (currentMedia.media_type !== 'image') return;
+
+    if (scale <= 1.15) {
+      setScale(1);
+      setTranslateX(0);
+      setTranslateY(0);
+      lastScaleRef.current = 1;
+      lastTranslateRef.current = { x: 0, y: 0 };
+    }
+
+    touchStartXRef.current = 0;
+    touchEndXRef.current = 0;
   };
 
   return (
-    <>
-      <div className="relative w-full bg-black rounded-lg overflow-hidden">
-        {/* Media Content */}
-        {currentMedia.media_type === 'image' ? (
-          <img
-            src={currentMedia.media_url}
-            alt={`Media ${currentIndex + 1}`}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-auto max-h-[600px] object-contain cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={(e) => {
-              e.stopPropagation();
-              openModal();
-            }}
-          />
-        ) : (
+    <div 
+      className="relative w-full bg-black rounded-lg overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Media Content */}
+      {currentMedia.media_type === 'image' ? (
+        <img
+          src={currentMedia.media_url}
+          alt={`Media ${currentIndex + 1}`}
+          loading="lazy"
+          decoding="async"
+          className="w-full h-auto max-h-[600px] object-contain select-none"
+          style={{
+            transform: `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`,
+            transition: scale === 1 ? 'transform 0.3s ease-out' : 'none',
+            touchAction: scale > 1 ? 'none' : 'pan-y',
+          }}
+          draggable={false}
+        />
+      ) : (
           <VideoPlayer
             src={currentMedia.media_url}
             className="w-full h-auto max-h-[600px]"
@@ -57,8 +140,8 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
           />
         )}
 
-      {/* Navigation Arrows (only if multiple media) */}
-      {media.length > 1 && (
+      {/* Navigation Arrows (only if multiple media and not zoomed) */}
+      {media.length > 1 && scale <= 1.1 && (
         <>
           {/* Previous Button */}
           <button
@@ -101,7 +184,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
               />
             ))}
           </div>
-        </>
+      </>
       )}
 
       {/* Media Counter */}
@@ -110,16 +193,14 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
           {currentIndex + 1} / {media.length}
         </div>
       )}
-      </div>
 
-      {/* Image Modal */}
-      <ImageModal
-        media={media}
-        initialIndex={modalIndex}
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-      />
-    </>
+      {/* Zoom Indicator */}
+      {scale > 1.1 && currentMedia.media_type === 'image' && (
+        <div className="absolute top-4 left-4 px-3 py-1 bg-black/70 text-white text-xs rounded-full backdrop-blur-sm">
+          {scale.toFixed(1)}x
+        </div>
+      )}
+    </div>
   );
 };
 
