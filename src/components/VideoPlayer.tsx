@@ -48,15 +48,27 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
     const handleCanPlay = () => setIsLoading(false);
     const handleError = (e: Event) => {
       console.error('Video error:', e);
-      // Don't show error immediately, might be temporary
+      // Don't show error immediately, might be temporary or network issue
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
-      // Wait a bit before showing error (might recover)
+      // Wait longer for large videos - 10 seconds
       loadTimeoutRef.current = setTimeout(() => {
-        setHasError(true);
-        setIsLoading(false);
-      }, 2000);
+        // Auto-retry once for network issues
+        if (retryCount === 0) {
+          console.log('Auto-retrying video load...');
+          setRetryCount(1);
+          video.load();
+          // If still fails after another 10s, show error
+          loadTimeoutRef.current = setTimeout(() => {
+            setHasError(true);
+            setIsLoading(false);
+          }, 10000);
+        } else {
+          setHasError(true);
+          setIsLoading(false);
+        }
+      }, 10000);
     };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
@@ -325,7 +337,8 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
         loop
         muted={isMuted}
         autoPlay={autoPlay}
-        preload="metadata"
+        preload="auto"
+        crossOrigin="anonymous"
       />
 
       {/* Play/Pause Animation Icon */}
