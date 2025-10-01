@@ -17,8 +17,10 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false }: VideoPlay
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -39,9 +41,17 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false }: VideoPlay
     const handleLoadedData = () => setIsLoading(false);
     const handleWaiting = () => setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
-    const handleError = () => {
-      setHasError(true);
-      setIsLoading(false);
+    const handleError = (e: Event) => {
+      console.error('Video error:', e);
+      // Don't show error immediately, might be temporary
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+      // Wait a bit before showing error (might recover)
+      loadTimeoutRef.current = setTimeout(() => {
+        setHasError(true);
+        setIsLoading(false);
+      }, 2000);
     };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
@@ -62,8 +72,24 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false }: VideoPlay
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
     };
   }, []);
+
+  // Retry loading video if error
+  const retryVideo = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    setHasError(false);
+    setIsLoading(true);
+    setRetryCount(prev => prev + 1);
+    
+    // Force reload
+    video.load();
+  };
 
   useEffect(() => {
     // Auto-hide controls after 3 seconds
@@ -206,11 +232,21 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false }: VideoPlay
 
       {/* Error State */}
       {hasError && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none bg-black/60">
-          <svg className="w-16 h-16 text-white mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
+          <svg className="w-16 h-16 text-white mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <p className="text-white text-sm">Video yüklenemedi</p>
+          <p className="text-white text-sm mb-2">Video yüklenemedi</p>
+          <p className="text-white/70 text-xs mb-4">Ağ bağlantınızı kontrol edin</p>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              retryVideo();
+            }}
+            className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-medium transition pointer-events-auto backdrop-blur-sm"
+          >
+            🔄 Tekrar Dene {retryCount > 0 && `(${retryCount})`}
+          </button>
         </div>
       )}
 
