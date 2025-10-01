@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { PostMedia } from '../types';
 
 interface ImageModalProps {
@@ -10,10 +10,29 @@ interface ImageModalProps {
 
 const ImageModal = ({ media, initialIndex, isOpen, onClose }: ImageModalProps) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const touchStartXRef = useRef(0);
+  const touchEndXRef = useRef(0);
+  const touchStartYRef = useRef(0);
+  const touchEndYRef = useRef(0);
+  const [scale, setScale] = useState(1);
+  const [translateX, setTranslateX] = useState(0);
+  const [translateY, setTranslateY] = useState(0);
+  const initialDistanceRef = useRef(0);
+  const lastScaleRef = useRef(1);
+  const lastTranslateRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
   }, [initialIndex]);
+
+  // Reset zoom when currentIndex changes
+  useEffect(() => {
+    setScale(1);
+    setTranslateX(0);
+    setTranslateY(0);
+    lastScaleRef.current = 1;
+    lastTranslateRef.current = { x: 0, y: 0 };
+  }, [currentIndex]);
 
   useEffect(() => {
     if (isOpen) {
@@ -28,25 +47,6 @@ const ImageModal = ({ media, initialIndex, isOpen, onClose }: ImageModalProps) =
     };
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      } else if (e.key === 'ArrowLeft') {
-        goToPrevious();
-      } else if (e.key === 'ArrowRight') {
-        goToNext();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, currentIndex]);
-
-  if (!isOpen) return null;
-
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1));
   };
@@ -55,29 +55,120 @@ const ImageModal = ({ media, initialIndex, isOpen, onClose }: ImageModalProps) =
     setCurrentIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1));
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
   const currentMedia = media[currentIndex];
 
-  // Handle swipe gestures
-  let touchStartX = 0;
-  let touchEndX = 0;
+  // Get distance between two touch points
+  const getDistance = (touches: React.TouchList) => {
+    const touch1 = touches[0];
+    const touch2 = touches[1];
+    return Math.hypot(
+      touch2.clientX - touch1.clientX,
+      touch2.clientY - touch1.clientY
+    );
+  };
 
+  // Handle swipe gestures
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX = e.touches[0].clientX;
+    if (e.touches.length === 2) {
+      // Two fingers - pinch zoom
+      e.preventDefault();
+      initialDistanceRef.current = getDistance(e.touches);
+      lastScaleRef.current = scale;
+    } else if (e.touches.length === 1) {
+      touchStartXRef.current = e.touches[0].clientX;
+      touchEndXRef.current = e.touches[0].clientX;
+      touchStartYRef.current = e.touches[0].clientY;
+      touchEndYRef.current = e.touches[0].clientY;
+      
+      if (scale > 1) {
+        // If zoomed, prepare for pan
+        lastTranslateRef.current = { x: translateX, y: translateY };
+      }
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX = e.touches[0].clientX;
+    if (e.touches.length === 2) {
+      // Two fingers - pinch zoom
+      e.preventDefault();
+      const currentDistance = getDistance(e.touches);
+      const newScale = (currentDistance / initialDistanceRef.current) * lastScaleRef.current;
+      // Limit scale between 1x and 4x
+      setScale(Math.min(Math.max(newScale, 1), 4));
+    } else if (e.touches.length === 1) {
+      if (scale > 1) {
+        // Zoomed - pan
+        e.preventDefault();
+        const deltaX = e.touches[0].clientX - touchStartXRef.current;
+        const deltaY = e.touches[0].clientY - touchStartYRef.current;
+        setTranslateX(lastTranslateRef.current.x + deltaX);
+        setTranslateY(lastTranslateRef.current.y + deltaY);
+      } else {
+        // Not zoomed - track for swipe navigation
+        touchEndXRef.current = e.touches[0].clientX;
+      }
+    }
   };
 
   const handleTouchEnd = () => {
-    if (touchStartX - touchEndX > 50) {
-      // Swipe left - next
-      goToNext();
+    // If zoomed out completely, reset position
+    if (scale <= 1.1 && scale !== 1) {
+      setScale(1);
+      setTranslateX(0);
+      setTranslateY(0);
+      lastScaleRef.current = 1;
+      lastTranslateRef.current = { x: 0, y: 0 };
     }
 
-    if (touchEndX - touchStartX > 50) {
-      // Swipe right - previous
-      goToPrevious();
+    // Only handle swipe navigation if not zoomed
+    if (scale === 1) {
+      const swipeDistance = touchStartXRef.current - touchEndXRef.current;
+      const minSwipeDistance = 75; // Increased threshold
+
+      if (Math.abs(swipeDistance) >= minSwipeDistance) {
+        if (swipeDistance > 0) {
+          // Swiped left -> next
+          goToNext();
+        } else {
+          // Swiped right -> previous
+          goToPrevious();
+        }
+      }
+    }
+
+    // Reset values
+    touchStartXRef.current = 0;
+    touchEndXRef.current = 0;
+  };
+
+  // Double tap to zoom
+  const handleDoubleTap = () => {
+    if (scale > 1) {
+      // Zoom out
+      setScale(1);
+      setTranslateX(0);
+      setTranslateY(0);
+      lastScaleRef.current = 1;
+      lastTranslateRef.current = { x: 0, y: 0 };
+    } else {
+      // Zoom in to 2x
+      setScale(2);
+      lastScaleRef.current = 2;
     }
   };
 
@@ -85,9 +176,6 @@ const ImageModal = ({ media, initialIndex, isOpen, onClose }: ImageModalProps) =
     <div
       className="fixed inset-0 z-[9999] bg-black"
       onClick={onClose}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
       {/* Close Button */}
       <button
@@ -112,50 +200,28 @@ const ImageModal = ({ media, initialIndex, isOpen, onClose }: ImageModalProps) =
         </div>
       )}
 
-      {/* Navigation Arrows */}
-      {media.length > 1 && (
-        <>
-          {/* Previous Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              goToPrevious();
-            }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-[10000] w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
-            aria-label="Previous"
-          >
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-
-          {/* Next Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              goToNext();
-            }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-[10000] w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
-            aria-label="Next"
-          >
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </>
-      )}
 
       {/* Media Content */}
       <div
-        className="w-full h-full flex items-center justify-center p-4"
+        className="w-full h-full flex items-center justify-center p-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         {currentMedia.media_type === 'image' ? (
           <img
             src={currentMedia.media_url}
             alt={`Media ${currentIndex + 1}`}
-            className="max-w-full max-h-full object-contain"
+            className="max-w-full max-h-full object-contain select-none transition-transform"
             loading="lazy"
+            onDoubleClick={handleDoubleTap}
+            style={{
+              transform: `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`,
+              cursor: scale > 1 ? 'move' : 'zoom-in',
+              touchAction: scale > 1 ? 'none' : 'pan-y',
+            }}
+            draggable={false}
           />
         ) : (
           <video
@@ -175,6 +241,7 @@ const ImageModal = ({ media, initialIndex, isOpen, onClose }: ImageModalProps) =
             <button
               key={index}
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 setCurrentIndex(index);
               }}
@@ -189,11 +256,18 @@ const ImageModal = ({ media, initialIndex, isOpen, onClose }: ImageModalProps) =
         </div>
       )}
 
-      {/* Swipe Hint (Mobile) */}
-      {media.length > 1 && (
-        <div className="absolute bottom-20 left-0 right-0 text-center z-[10000] md:hidden">
-          <p className="text-white/50 text-xs">
-            ← Kaydır →
+      {/* Hints */}
+      {scale === 1 && media.length > 1 && (
+        <div className="absolute bottom-20 left-0 right-0 text-center z-[10000]">
+          <p className="text-white/70 text-sm font-medium">
+            ← Kaydır → | Çift tıkla: Yakınlaştır
+          </p>
+        </div>
+      )}
+      {scale > 1 && (
+        <div className="absolute bottom-20 left-0 right-0 text-center z-[10000]">
+          <p className="text-white/70 text-sm font-medium">
+            Çift tıkla: Uzaklaştır | Sürükle: Hareket ettir
           </p>
         </div>
       )}

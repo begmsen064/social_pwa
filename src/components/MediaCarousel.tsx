@@ -14,11 +14,15 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
 
   if (!media || media.length === 0) return null;
 
-  const goToPrevious = () => {
+  const goToPrevious = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setCurrentIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1));
   };
 
-  const goToNext = () => {
+  const goToNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setCurrentIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1));
   };
 
@@ -40,7 +44,10 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
             loading="lazy"
             decoding="async"
             className="w-full h-auto max-h-[600px] object-contain cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={openModal}
+            onClick={(e) => {
+              e.stopPropagation();
+              openModal();
+            }}
           />
         ) : (
           <VideoPlayer
@@ -80,7 +87,11 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
             {media.map((_, index) => (
               <button
                 key={index}
-                onClick={() => setCurrentIndex(index)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCurrentIndex(index);
+                }}
                 className={`w-2 h-2 rounded-full transition-all ${
                   index === currentIndex
                     ? 'bg-white w-6'
