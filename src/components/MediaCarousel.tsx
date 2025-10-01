@@ -21,18 +21,6 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
 
   if (!media || media.length === 0) return null;
 
-  const goToPrevious = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setCurrentIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1));
-  };
-
-  const goToNext = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setCurrentIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1));
-  };
-
   const currentMedia = media[currentIndex];
 
   // Get distance between two touch points
