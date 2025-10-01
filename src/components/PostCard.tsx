@@ -352,16 +352,28 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
               >
                 {post.user?.username}
               </span>
-              {showFullCaption || post.caption.length <= 100 ? (
+              {post.caption.length <= 100 ? (
                 post.caption
+              ) : showFullCaption ? (
+                <>
+                  {post.caption}
+                  {' '}
+                  <button
+                    onClick={() => setShowFullCaption(false)}
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  >
+                    kapat
+                  </button>
+                </>
               ) : (
                 <>
                   {post.caption.substring(0, 100)}...
+                  {' '}
                   <button
                     onClick={() => setShowFullCaption(true)}
-                    className="text-gray-500 dark:text-gray-400 ml-1 hover:text-gray-700 dark:hover:text-gray-300"
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   >
-                    devamını gör
+                    daha
                   </button>
                 </>
               )}
