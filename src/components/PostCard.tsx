@@ -39,6 +39,7 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isPurchased, setIsPurchased] = useState(post.is_purchased || false);
+  const [showFullCaption, setShowFullCaption] = useState(false);
 
   const isOwner = currentUser?.id === post.user_id;
   const isPremium = post.price > 0;
@@ -351,7 +352,19 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
               >
                 {post.user?.username}
               </span>
-              {post.caption}
+              {showFullCaption || post.caption.length <= 100 ? (
+                post.caption
+              ) : (
+                <>
+                  {post.caption.substring(0, 100)}...
+                  <button
+                    onClick={() => setShowFullCaption(true)}
+                    className="text-gray-500 dark:text-gray-400 ml-1 hover:text-gray-700 dark:hover:text-gray-300"
+                  >
+                    devamını gör
+                  </button>
+                </>
+              )}
             </p>
           </div>
         )}
