@@ -29,7 +29,6 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
     post.likes_count || 0,
     post.user_id
   );
-  const [lastTap, setLastTap] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [showMenu, setShowMenu] = useState(false);
@@ -50,22 +49,9 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
     locale: tr,
   });
 
-  // Double tap to like/unlike
+  // Double tap to like/unlike (animation handled in MediaCarousel)
   const handleDoubleTap = () => {
-    const now = Date.now();
-    const DOUBLE_TAP_DELAY = 300;
-
-    if (now - lastTap < DOUBLE_TAP_DELAY) {
-      // Double tap detected - toggle like
-      toggleLike();
-      
-      // Show animation only when liking (not unliking)
-      if (!isLiked) {
-        setShowHeartAnimation(true);
-        setTimeout(() => setShowHeartAnimation(false), 1000);
-      }
-    }
-    setLastTap(now);
+    toggleLike();
   };
 
   const handleDelete = async () => {
