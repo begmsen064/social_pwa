@@ -35,6 +35,40 @@ const Home = () => {
     }
   }, [user, filter]); // Re-fetch when filter changes
 
+  // Keep session alive and refresh data periodically
+  useEffect(() => {
+    if (!user) return;
+
+    // Refresh session every 5 minutes
+    const sessionInterval = setInterval(async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error refreshing session:', error);
+          return;
+        }
+        if (!session) {
+          // Session expired, redirect to login
+          navigate('/login');
+        }
+      } catch (err) {
+        console.error('Session refresh error:', err);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    // Refresh feed data every 30 seconds
+    const dataInterval = setInterval(() => {
+      fetchPosts(true, 1); // Skip loading indicator
+      fetchUnreadNotifications();
+      fetchUnreadMessages();
+    }, 30 * 1000); // 30 seconds
+
+    return () => {
+      clearInterval(sessionInterval);
+      clearInterval(dataInterval);
+    };
+  }, [user, navigate]);
+
   // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
