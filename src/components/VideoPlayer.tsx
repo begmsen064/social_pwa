@@ -119,15 +119,41 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false }: VideoPlay
         setShowPlayIcon(true);
         setTimeout(() => setShowPlayIcon(false), 500);
       } else {
+        // Check if video is ready to play
+        if (video.readyState < 2) {
+          // Video not ready yet, show loading
+          setIsLoading(true);
+          // Wait for video to be ready
+          await new Promise((resolve) => {
+            const onCanPlay = () => {
+              video.removeEventListener('canplay', onCanPlay);
+              resolve(true);
+            };
+            video.addEventListener('canplay', onCanPlay);
+            // Timeout after 5 seconds
+            setTimeout(() => {
+              video.removeEventListener('canplay', onCanPlay);
+              resolve(false);
+            }, 5000);
+          });
+        }
+        
         setIsLoading(true);
-        await video.play();
-        setShowPlayIcon(true);
-        setTimeout(() => setShowPlayIcon(false), 500);
-        setIsLoading(false);
+        const playPromise = video.play();
+        
+        if (playPromise !== undefined) {
+          await playPromise;
+          setShowPlayIcon(true);
+          setTimeout(() => setShowPlayIcon(false), 500);
+          setIsLoading(false);
+        }
       }
       setShowControls(true);
-    } catch (error) {
-      console.error('Error playing video:', error);
+    } catch (error: any) {
+      // Ignore AbortError which happens when play is interrupted
+      if (error.name !== 'AbortError') {
+        console.error('Error playing video:', error);
+      }
       setIsLoading(false);
     }
   };
