@@ -12,12 +12,15 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const [translateX, setTranslateX] = useState(0);
   const [translateY, setTranslateY] = useState(0);
   const [isZooming, setIsZooming] = useState(false);
+  const [zoomCenterX, setZoomCenterX] = useState(0);
+  const [zoomCenterY, setZoomCenterY] = useState(0);
   const touchStartXRef = useRef(0);
   const touchEndXRef = useRef(0);
   const touchStartYRef = useRef(0);
   const initialDistanceRef = useRef(0);
   const lastScaleRef = useRef(1);
   const lastTranslateRef = useRef({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   if (!media || media.length === 0) return null;
 
@@ -42,6 +45,16 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
       setIsZooming(true);
       initialDistanceRef.current = getDistance(e.touches);
       lastScaleRef.current = scale;
+      
+      // Calculate center point between two fingers
+      const container = containerRef.current;
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        const centerX = ((e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left - rect.width / 2);
+        const centerY = ((e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top - rect.height / 2);
+        setZoomCenterX(centerX);
+        setZoomCenterY(centerY);
+      }
     } else if (e.touches.length === 1) {
       touchStartXRef.current = e.touches[0].clientX;
       touchEndXRef.current = e.touches[0].clientX;
@@ -90,8 +103,8 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const handleTouchEnd = () => {
     if (currentMedia.media_type !== 'image') return;
 
-    // Handle swipe navigation if not zoomed
-    if (scale <= 1.1 && media.length > 1) {
+    // Handle swipe navigation ONLY if not zooming and scale is normal
+    if (!isZooming && scale <= 1.1 && media.length > 1) {
       const swipeDistance = touchStartXRef.current - touchEndXRef.current;
       const minSwipeDistance = 75;
 
@@ -111,6 +124,8 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
     setTranslateX(0);
     setTranslateY(0);
     setIsZooming(false);
+    setZoomCenterX(0);
+    setZoomCenterY(0);
     lastScaleRef.current = 1;
     lastTranslateRef.current = { x: 0, y: 0 };
 
@@ -121,6 +136,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
   return (
     <>
       <div 
+        ref={containerRef}
         className="relative w-full bg-black rounded-lg overflow-hidden"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -182,7 +198,8 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
             alt={`Media ${currentIndex + 1}`}
             className="max-w-full max-h-full object-contain select-none"
             style={{
-              transform: `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`,
+              transform: `scale(${scale}) translate(${(translateX + zoomCenterX * (scale - 1)) / scale}px, ${(translateY + zoomCenterY * (scale - 1)) / scale}px)`,
+              transformOrigin: 'center',
               touchAction: 'none',
             }}
             draggable={false}
