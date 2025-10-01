@@ -150,6 +150,8 @@ const MediaCarousel = ({ media, onDoubleTap, isLiked }: MediaCarouselProps) => {
               src={currentMedia.media_url}
               className="w-full h-full"
               autoPlay={false}
+              onDoubleTap={onDoubleTap}
+              isLiked={isLiked}
             />
           )}
         </div>

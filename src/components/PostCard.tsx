@@ -340,7 +340,7 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
         {/* Caption */}
         {post.caption && (
           <div className="mb-2">
-            <p className="text-sm text-gray-900 dark:text-gray-100">
+            <p className="text-sm text-gray-900 dark:text-gray-100 break-words">
               <span 
                 className="font-semibold mr-2 cursor-pointer hover:underline"
                 onClick={(e) => {
