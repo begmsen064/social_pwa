@@ -11,6 +11,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const [scale, setScale] = useState(1);
   const [translateX, setTranslateX] = useState(0);
   const [translateY, setTranslateY] = useState(0);
+  const [isZooming, setIsZooming] = useState(false);
   const touchStartXRef = useRef(0);
   const touchEndXRef = useRef(0);
   const touchStartYRef = useRef(0);
@@ -50,6 +51,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
 
     if (e.touches.length === 2) {
       e.preventDefault();
+      setIsZooming(true);
       initialDistanceRef.current = getDistance(e.touches);
       lastScaleRef.current = scale;
     } else if (e.touches.length === 1) {
@@ -98,41 +100,37 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const handleTouchEnd = () => {
     if (currentMedia.media_type !== 'image') return;
 
-    if (scale <= 1.15) {
-      setScale(1);
-      setTranslateX(0);
-      setTranslateY(0);
-      lastScaleRef.current = 1;
-      lastTranslateRef.current = { x: 0, y: 0 };
-    }
+    // Instagram style: always reset when fingers released
+    setScale(1);
+    setTranslateX(0);
+    setTranslateY(0);
+    setIsZooming(false);
+    lastScaleRef.current = 1;
+    lastTranslateRef.current = { x: 0, y: 0 };
 
     touchStartXRef.current = 0;
     touchEndXRef.current = 0;
   };
 
   return (
-    <div 
-      className="relative w-full bg-black rounded-lg overflow-hidden"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Media Content */}
-      {currentMedia.media_type === 'image' ? (
-        <img
-          src={currentMedia.media_url}
-          alt={`Media ${currentIndex + 1}`}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-auto max-h-[600px] object-contain select-none"
-          style={{
-            transform: `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`,
-            transition: scale === 1 ? 'transform 0.3s ease-out' : 'none',
-            touchAction: scale > 1 ? 'none' : 'pan-y',
-          }}
-          draggable={false}
-        />
-      ) : (
+    <>
+      <div 
+        className="relative w-full bg-black rounded-lg overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Media Content */}
+        {currentMedia.media_type === 'image' ? (
+          <img
+            src={currentMedia.media_url}
+            alt={`Media ${currentIndex + 1}`}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-auto max-h-[600px] object-contain select-none"
+            draggable={false}
+          />
+        ) : (
           <VideoPlayer
             src={currentMedia.media_url}
             className="w-full h-auto max-h-[600px]"
@@ -140,67 +138,56 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
           />
         )}
 
-      {/* Navigation Arrows (only if multiple media and not zoomed) */}
-      {media.length > 1 && scale <= 1.1 && (
-        <>
-          {/* Previous Button */}
-          <button
-            onClick={goToPrevious}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
-            aria-label="Previous"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-
-          {/* Next Button */}
-          <button
-            onClick={goToNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
-            aria-label="Next"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-
-          {/* Dots Indicator */}
-          <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-2">
-            {media.map((_, index) => (
-              <button
-                key={index}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setCurrentIndex(index);
-                }}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  index === currentIndex
-                    ? 'bg-white w-6'
-                    : 'bg-white/50 hover:bg-white/70'
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
-      </>
-      )}
-
-      {/* Media Counter */}
+      {/* Dots Indicator - Only if multiple media */}
       {media.length > 1 && (
-        <div className="absolute top-4 right-4 px-3 py-1 bg-black/70 text-white text-sm rounded-full backdrop-blur-sm">
-          {currentIndex + 1} / {media.length}
+        <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-2">
+          {media.map((_, index) => (
+            <button
+              key={index}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setCurrentIndex(index);
+              }}
+              className={`w-2 h-2 rounded-full transition-all ${
+                index === currentIndex
+                  ? 'bg-white w-6'
+                  : 'bg-white/50 hover:bg-white/70'
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
         </div>
       )}
 
-      {/* Zoom Indicator */}
-      {scale > 1.1 && currentMedia.media_type === 'image' && (
-        <div className="absolute top-4 left-4 px-3 py-1 bg-black/70 text-white text-xs rounded-full backdrop-blur-sm">
-          {scale.toFixed(1)}x
+        {/* Media Counter */}
+        {media.length > 1 && (
+          <div className="absolute top-4 right-4 px-3 py-1 bg-black/70 text-white text-sm rounded-full backdrop-blur-sm">
+            {currentIndex + 1} / {media.length}
+          </div>
+        )}
+      </div>
+
+      {/* Fullscreen Zoom Overlay - Instagram Style */}
+      {isZooming && scale > 1 && currentMedia.media_type === 'image' && (
+        <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center">
+          <img
+            src={currentMedia.media_url}
+            alt={`Media ${currentIndex + 1}`}
+            className="max-w-full max-h-full object-contain select-none"
+            style={{
+              transform: `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`,
+              touchAction: 'none',
+            }}
+            draggable={false}
+          />
+          {/* Zoom Level Indicator */}
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/60 text-white text-sm rounded-full backdrop-blur-sm">
+            {scale.toFixed(1)}x
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
