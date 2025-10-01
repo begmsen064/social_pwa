@@ -29,7 +29,6 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
     post.likes_count || 0,
     post.user_id
   );
-  const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const [lastTap, setLastTap] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
