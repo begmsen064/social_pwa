@@ -57,6 +57,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
     if (currentMedia.media_type !== 'image') return;
 
     if (e.touches.length === 2) {
+      // Prevent viewport zoom when pinching
       e.preventDefault();
       const currentDistance = getDistance(e.touches);
       let newScale = (currentDistance / initialDistanceRef.current) * lastScaleRef.current;
@@ -80,6 +81,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
         setTranslateX(newX);
         setTranslateY(newY);
       } else {
+        // Track for swipe navigation
         touchEndXRef.current = e.touches[0].clientX;
       }
     }
@@ -87,6 +89,22 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
 
   const handleTouchEnd = () => {
     if (currentMedia.media_type !== 'image') return;
+
+    // Handle swipe navigation if not zoomed
+    if (scale <= 1.1 && media.length > 1) {
+      const swipeDistance = touchStartXRef.current - touchEndXRef.current;
+      const minSwipeDistance = 75;
+
+      if (Math.abs(swipeDistance) >= minSwipeDistance) {
+        if (swipeDistance > 0) {
+          // Swiped left -> next
+          setCurrentIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1));
+        } else {
+          // Swiped right -> previous
+          setCurrentIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1));
+        }
+      }
+    }
 
     // Instagram style: always reset when fingers released
     setScale(1);
