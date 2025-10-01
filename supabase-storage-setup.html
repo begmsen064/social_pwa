@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Storage Kurulum Rehberi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #E11D48 0%, #F43F5E 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .step {
+            margin-bottom: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #E11D48;
+            position: relative;
+        }
+
+        .step.completed {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        .step-number {
+            position: absolute;
+            top: -15px;
+            left: 20px;
+            background: #E11D48;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .step.completed .step-number {
+            background: #28a745;
+        }
+
+        .step h2 {
+            margin: 10px 0 15px 0;
+            color: #E11D48;
+            font-size: 1.5em;
+        }
+
+        .step.completed h2 {
+            color: #28a745;
+        }
+
+        .step p {
+            line-height: 1.8;
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #E11D48;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #BE123C;
+            transform: scale(1.05);
+        }
+
+        .copy-btn.copied {
+            background: #28a745;
+        }
+
+        .alert {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: flex;
+            align-items: start;
+            gap: 15px;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            color: #0c5460;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+
+        .alert-icon {
+            font-size: 1.5em;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #E11D48 0%, #F43F5E 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            margin: 10px 10px 10px 0;
+            box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(225, 29, 72, 0.6);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+        }
+
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+
+        .checklist li {
+            padding: 15px;
+            margin: 10px 0;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .checklist li:hover {
+            background: #f8f9fa;
+            transform: translateX(5px);
+        }
+
+        .checklist li.checked {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #E11D48;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .checklist li.checked .checkbox {
+            background: #28a745;
+            border-color: #28a745;
+        }
+
+        .checkbox::after {
+            content: '✓';
+            color: white;
+            font-weight: bold;
+            display: none;
+        }
+
+        .checklist li.checked .checkbox::after {
+            display: block;
+        }
+
+        .screenshot-hint {
+            background: #e7f3ff;
+            border: 2px dashed #2196F3;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            color: #1976D2;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #E11D48 0%, #F43F5E 100%);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            border-top: 2px solid #e9ecef;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .step {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗄️ Supabase Storage Kurulumu</h1>
+            <p>Social PWA için gerekli storage bucket'larını oluşturun</p>
+        </div>
+
+        <div class="content">
+            <div class="alert alert-warning">
+                <span class="alert-icon">⚠️</span>
+                <div>
+                    <strong>Önemli!</strong> Bu adımları tamamlamadan post paylaşamazsınız. 
+                    "Bucket not found" hatasını almamak için aşağıdaki adımları takip edin.
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width: 0%">0%</div>
+            </div>
+
+            <!-- STEP 1 -->
+            <div class="step" id="step1">
+                <div class="step-number">1</div>
+                <h2>Supabase Dashboard'a Giriş Yap</h2>
+                <p>İlk olarak Supabase projenize giriş yapmanız gerekiyor.</p>
+                
+                <a href="https://supabase.com/dashboard" target="_blank" class="btn">
+                    🚀 Supabase Dashboard'a Git
+                </a>
+                
+                <div class="alert alert-info">
+                    <span class="alert-icon">ℹ️</span>
+                    <div>
+                        <strong>İpucu:</strong> Henüz proje oluşturmadıysanız, "New Project" butonuna tıklayarak 
+                        yeni bir proje oluşturun.
+                    </div>
+                </div>
+
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">
+                        <div class="checkbox"></div>
+                        <span>Supabase Dashboard'a giriş yaptım</span>
+                    </li>
+                    <li onclick="toggleCheck(this)">
+                        <div class="checkbox"></div>
+                        <span>Projem açık ve hazır</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- STEP 2 -->
+            <div class="step" id="step2">
+                <div class="step-number">2</div>
+                <h2>Storage Bölümüne Git</h2>
+                <p>Sol menüden <strong>Storage</strong> bölümünü bulup tıklayın.</p>
+                
+                <div class="screenshot-hint">
+                    📸 Sol menüde "Storage" ikonunu arayın (kare kutu ikonu)
+                </div>
+
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">
+                        <div class="checkbox"></div>
+                        <span>Storage sayfasını açtım</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- STEP 3 -->
+            <div class="step" id="step3">
+                <div class="step-number">3</div>
+                <h2>İlk Bucket'ı Oluştur: "posts"</h2>
+                <p>Post resimlerini ve videolarını saklamak için bir bucket oluşturalım.</p>
+
+                <ol style="margin-left: 20px; line-height: 2;">
+                    <li>Sağ üstteki <strong>"New bucket"</strong> butonuna tıklayın</li>
+                    <li>Bucket adı olarak <code>posts</code> yazın (küçük harf)</li>
+                    <li><strong>"Public bucket"</strong> seçeneğini ✅ işaretleyin (ÖNEMLİ!)</li>
+                    <li><strong>"Save"</strong> butonuna tıklayın</li>
+                </ol>
+
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this, 'posts')">Kopyala</button>
+                    <pre>Bucket Name: posts
+Public: ✅ Yes (işaretli olmalı)</pre>
+                </div>
+
+                <div class="alert alert-warning">
+                    <span class="alert-icon">⚠️</span>
+                    <div>
+                        <strong>Dikkat!</strong> "Public bucket" seçeneği mutlaka işaretli olmalı. 
+                        Aksi halde resimler yüklenir ama görünmez!
+                    </div>
+                </div>
+
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">
+                        <div class="checkbox"></div>
+                        <span>"posts" bucket'ını oluşturdum</span>
+                    </li>
+                    <li onclick="toggleCheck(this)">
+                        <div class="checkbox"></div>
+                        <span>Public bucket seçeneğini işaretledim</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- STEP 4 -->
+            <div class="step" id="step4">
+                <div class="step-number">4</div>
+                <h2>İkinci Bucket'ı Oluştur: "avatars"</h2>
+                <p>Kullanıcı profil resimlerini saklamak için ikinci bucket'ı oluşturalım.</p>
+
+                <ol style="margin-left: 20px; line-height: 2;">
+                    <li>Tekrar <strong>"New bucket"</strong> butonuna tıklayın</li>
+                    <li>Bucket adı olarak <code>avatars</code> yazın (küçük harf)</li>
+                    <li><strong>"Public bucket"</strong> seçeneğini ✅ işaretleyin</li>
+                    <li><strong>"Save"</strong> butonuna tıklayın</li>
+                </ol>
+
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this, 'avatars')">Kopyala</button>
+                    <pre>Bucket Name: avatars
+Public: ✅ Yes (işaretli olmalı)</pre>
+                </div>
+
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">
+                        <div class="checkbox"></div>
+                        <span>"avatars" bucket'ını oluşturdum</span>
+                    </li>
+                    <li onclick="toggleCheck(this)">
+                        <div class="checkbox"></div>
+                        <span>Public bucket seçeneğini işaretledim</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- STEP 5 -->
+            <div class="step" id="step5">
+                <div class="step-number">5</div>
+                <h2>Bucket'ları Kontrol Et</h2>
+                <p>Her şeyin doğru olduğundan emin olalım.</p>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">✓</span>
+                    <div>
+                        Storage sayfasında şu 2 bucket'ı görmelisiniz:
+                        <ul style="margin-top: 10px; margin-left: 20px;">
+                            <li><strong>posts</strong> - Public ✅</li>
+                            <li><strong>avatars</strong> - Public ✅</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">
+                        <div class="checkbox"></div>
+                        <span>Her iki bucket'ı da Storage listesinde görüyorum</span>
+                    </li>
+                    <li onclick="toggleCheck(this)">
+                        <div class="checkbox"></div>
+                        <span>İkisi de "Public" olarak işaretli</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- STEP 6 -->
+            <div class="step" id="step6">
+                <div class="step-number">6</div>
+                <h2>Uygulamayı Test Et</h2>
+                <p>Artık hazırsınız! Uygulamada post paylaşmayı deneyin.</p>
+
+                <div class="alert alert-success">
+                    <span class="alert-icon">🎉</span>
+                    <div>
+                        <strong>Tebrikler!</strong> Storage kurulumunu tamamladınız. 
+                        Artık resim ve video paylaşabilirsiniz!
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <strong>Test için:</strong>
+                    <ol style="margin-left: 20px; margin-top: 10px; line-height: 2;">
+                        <li>Uygulamaya geri dönün</li>
+                        <li>Alt menüden <strong>"+"</strong> butonuna tıklayın</li>
+                        <li>Bir resim seçin</li>
+                        <li>Caption yazın</li>
+                        <li><strong>"Paylaş"</strong> butonuna tıklayın</li>
+                        <li>✅ Başarılı! Post oluşturuldu ve ana sayfaya yönlendirildiniz</li>
+                    </ol>
+                </div>
+
+                <ul class="checklist">
+                    <li onclick="toggleCheck(this)">
+                        <div class="checkbox"></div>
+                        <span>Test post'u başarıyla paylaştım</span>
+                    </li>
+                    <li onclick="toggleCheck(this)">
+                        <div class="checkbox"></div>
+                        <span>"Bucket not found" hatası almadım</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- TROUBLESHOOTING -->
+            <div style="background: #fff3cd; border: 2px solid #ffc107; padding: 30px; border-radius: 15px; margin-top: 40px;">
+                <h2 style="color: #856404; margin-bottom: 20px;">🐛 Sorun Giderme</h2>
+                
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #856404;">Hala "Bucket not found" hatası alıyorum:</strong>
+                    <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
+                        <li>Bucket adlarının <code>posts</code> ve <code>avatars</code> olduğundan emin olun (küçük harf)</li>
+                        <li>Her iki bucket'ın da "Public" olarak işaretlendiğini kontrol edin</li>
+                        <li>Supabase projenizin aktif olduğundan emin olun</li>
+                        <li>.env dosyanızdaki SUPABASE_URL'in doğru olduğunu kontrol edin</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #856404;">Resimler yükleniyor ama görünmüyor:</strong>
+                    <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
+                        <li>Bucket'ların "Public" olduğunu tekrar kontrol edin</li>
+                        <li>Storage > Configuration > Policies bölümünden public access policy'si olduğundan emin olun</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <strong style="color: #856404;">Başka bir sorun mu var?</strong>
+                    <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
+                        <li>Browser console'u açın (F12) ve hata mesajını kontrol edin</li>
+                        <li>Supabase Dashboard > Logs bölümünden detaylı logları inceleyin</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p style="font-size: 1.1em; margin-bottom: 15px;">
+                <strong>Kurulum tamamlandı mı?</strong>
+            </p>
+            <button class="btn" onclick="window.close()">
+                ✅ Evet, Uygulamaya Dön
+            </button>
+            <a href="https://supabase.com/docs/guides/storage" target="_blank" class="btn btn-secondary">
+                📚 Storage Dokümantasyonu
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let completedSteps = 0;
+        const totalSteps = 6;
+
+        function toggleCheck(element) {
+            element.classList.toggle('checked');
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const allCheckboxes = document.querySelectorAll('.checklist li');
+            const checkedBoxes = document.querySelectorAll('.checklist li.checked');
+            const progress = (checkedBoxes.length / allCheckboxes.length) * 100;
+            
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = Math.round(progress) + '%';
+
+            // Mark steps as completed
+            for (let i = 1; i <= totalSteps; i++) {
+                const step = document.getElementById('step' + i);
+                const stepCheckboxes = step.querySelectorAll('.checklist li');
+                const stepChecked = step.querySelectorAll('.checklist li.checked');
+                
+                if (stepCheckboxes.length === stepChecked.length && stepCheckboxes.length > 0) {
+                    step.classList.add('completed');
+                } else {
+                    step.classList.remove('completed');
+                }
+            }
+        }
+
+        function copyCode(button, text) {
+            navigator.clipboard.writeText(text);
+            const originalText = button.textContent;
+            button.textContent = '✓ Kopyalandı!';
+            button.classList.add('copied');
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.classList.remove('copied');
+            }, 2000);
+        }
+
+        // Load saved progress from localStorage
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('supabase-setup-progress');
+            if (saved) {
+                const checkedItems = JSON.parse(saved);
+                checkedItems.forEach(index => {
+                    const checkboxes = document.querySelectorAll('.checklist li');
+                    if (checkboxes[index]) {
+                        checkboxes[index].classList.add('checked');
+                    }
+                });
+                updateProgress();
+            }
+        });
+
+        // Save progress to localStorage
+        window.addEventListener('beforeunload', () => {
+            const checkedItems = [];
+            document.querySelectorAll('.checklist li.checked').forEach((item, index) => {
+                const allItems = Array.from(document.querySelectorAll('.checklist li'));
+                checkedItems.push(allItems.indexOf(item));
+            });
+            localStorage.setItem('supabase-setup-progress', JSON.stringify(checkedItems));
+        });
+    </script>
+</body>
+</html>
