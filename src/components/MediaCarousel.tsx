@@ -109,7 +109,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
           ) : (
             <VideoPlayer
               src={currentMedia.media_url}
-              className="max-w-full max-h-full"
+              className="w-full h-full"
               autoPlay={false}
             />
           )}
