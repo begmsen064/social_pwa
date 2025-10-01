@@ -8,12 +8,15 @@ interface MediaCarouselProps {
 
 const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [scale, setScale] = useState(1);
-  const [translateX, setTranslateX] = useState(0);
-  const [translateY, setTranslateY] = useState(0);
   const [isZooming, setIsZooming] = useState(false);
-  const [zoomCenterX, setZoomCenterX] = useState(0);
-  const [zoomCenterY, setZoomCenterY] = useState(0);
+  
+  // Use refs for smooth, lag-free zoom and pan
+  const scaleRef = useRef(1);
+  const translateXRef = useRef(0);
+  const translateYRef = useRef(0);
+  const zoomCenterXRef = useRef(0);
+  const zoomCenterYRef = useRef(0);
+  
   const touchStartXRef = useRef(0);
   const touchEndXRef = useRef(0);
   const touchStartYRef = useRef(0);
@@ -21,7 +24,9 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const lastScaleRef = useRef(1);
   const lastTranslateRef = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const hasPinchedRef = useRef(false); // Track if user has actually pinched
+  const imageRef = useRef<HTMLImageElement>(null);
+  const hasPinchedRef = useRef(false);
+  const isPanningRef = useRef(false);
 
   if (!media || media.length === 0) return null;
 
@@ -37,33 +42,50 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
     );
   };
 
+  // Apply transform directly to DOM for smooth, lag-free updates
+  const applyTransform = () => {
+    if (imageRef.current) {
+      const scale = scaleRef.current;
+      const x = translateXRef.current;
+      const y = translateYRef.current;
+      const zoomX = zoomCenterXRef.current;
+      const zoomY = zoomCenterYRef.current;
+      
+      imageRef.current.style.transform = `scale(${scale}) translate(${(x + zoomX * (scale - 1)) / scale}px, ${(y + zoomY * (scale - 1)) / scale}px)`;
+    }
+  };
+
   // Handle touch gestures
   const handleTouchStart = (e: React.TouchEvent) => {
     if (currentMedia.media_type !== 'image') return;
 
     if (e.touches.length === 2) {
       e.preventDefault();
+      e.stopPropagation();
       setIsZooming(true);
-      hasPinchedRef.current = false; // Reset pinch flag
-      initialDistanceRef.current = getDistance(e.touches);
-      lastScaleRef.current = scale;
+      hasPinchedRef.current = false;
+      isPanningRef.current = false;
       
-      // Calculate center point between two fingers relative to the image
+      initialDistanceRef.current = getDistance(e.touches);
+      lastScaleRef.current = scaleRef.current;
+      
+      // Calculate center point between two fingers
       const container = containerRef.current;
       if (container) {
         const rect = container.getBoundingClientRect();
         const centerX = ((e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left - rect.width / 2);
         const centerY = ((e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top - rect.height / 2);
-        setZoomCenterX(centerX);
-        setZoomCenterY(centerY);
+        zoomCenterXRef.current = centerX;
+        zoomCenterYRef.current = centerY;
       }
     } else if (e.touches.length === 1) {
       touchStartXRef.current = e.touches[0].clientX;
       touchEndXRef.current = e.touches[0].clientX;
       touchStartYRef.current = e.touches[0].clientY;
       
-      if (scale > 1) {
-        lastTranslateRef.current = { x: translateX, y: translateY };
+      if (scaleRef.current > 1) {
+        isPanningRef.current = true;
+        lastTranslateRef.current = { x: translateXRef.current, y: translateYRef.current };
       }
     }
   };
@@ -72,43 +94,50 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
     if (currentMedia.media_type !== 'image') return;
 
     if (e.touches.length === 2) {
-      // Prevent viewport zoom when pinching
+      // Pinch zoom
       e.preventDefault();
+      e.stopPropagation();
+      
       const currentDistance = getDistance(e.touches);
       const newScale = (currentDistance / initialDistanceRef.current) * lastScaleRef.current;
+      const clampedScale = Math.min(Math.max(newScale, 1), 4);
       
-      // Clamp between 1x and 3x - smooth, no dampening for instant response
-      const clampedScale = Math.min(Math.max(newScale, 1), 3);
-      
-      // Mark that user has actually pinched (not just touched with 2 fingers)
-      if (Math.abs(clampedScale - lastScaleRef.current) > 0.05) {
+      // Mark as pinched if significant scale change
+      if (Math.abs(clampedScale - lastScaleRef.current) > 0.1) {
         hasPinchedRef.current = true;
       }
       
-      setScale(clampedScale);
+      scaleRef.current = clampedScale;
       
-      // Update zoom center dynamically during pinch
+      // Update zoom center dynamically
       const container = containerRef.current;
       if (container) {
         const rect = container.getBoundingClientRect();
         const centerX = ((e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left - rect.width / 2);
         const centerY = ((e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top - rect.height / 2);
-        setZoomCenterX(centerX);
-        setZoomCenterY(centerY);
+        zoomCenterXRef.current = centerX;
+        zoomCenterYRef.current = centerY;
       }
+      
+      applyTransform();
     } else if (e.touches.length === 1) {
-      if (scale > 1.1) {
+      if (isPanningRef.current && scaleRef.current > 1.1) {
+        // Pan in all directions when zoomed
         e.preventDefault();
+        e.stopPropagation();
+        
         const deltaX = e.touches[0].clientX - touchStartXRef.current;
         const deltaY = e.touches[0].clientY - touchStartYRef.current;
         
-        const maxPan = 300 * scale;
+        const maxPan = 400 * scaleRef.current;
         const newX = Math.min(Math.max(lastTranslateRef.current.x + deltaX, -maxPan), maxPan);
         const newY = Math.min(Math.max(lastTranslateRef.current.y + deltaY, -maxPan), maxPan);
         
-        setTranslateX(newX);
-        setTranslateY(newY);
-      } else {
+        translateXRef.current = newX;
+        translateYRef.current = newY;
+        
+        applyTransform();
+      } else if (scaleRef.current <= 1.1) {
         // Track for swipe navigation only if not zoomed
         touchEndXRef.current = e.touches[0].clientX;
       }
@@ -118,9 +147,11 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
   const handleTouchEnd = () => {
     if (currentMedia.media_type !== 'image') return;
 
-    // Handle swipe navigation ONLY if user hasn't pinched and scale is normal
-    // This prevents accidental image changes when starting a pinch gesture
-    if (!hasPinchedRef.current && !isZooming && scale <= 1.1 && media.length > 1) {
+    // Handle swipe navigation ONLY if:
+    // - User hasn't pinched
+    // - Not currently panning
+    // - Scale is normal
+    if (!hasPinchedRef.current && !isPanningRef.current && !isZooming && scaleRef.current <= 1.1 && media.length > 1) {
       const swipeDistance = touchStartXRef.current - touchEndXRef.current;
       const minSwipeDistance = 75;
 
@@ -136,18 +167,24 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
     }
 
     // Instagram style: always reset when fingers released
-    setScale(1);
-    setTranslateX(0);
-    setTranslateY(0);
+    scaleRef.current = 1;
+    translateXRef.current = 0;
+    translateYRef.current = 0;
+    zoomCenterXRef.current = 0;
+    zoomCenterYRef.current = 0;
     setIsZooming(false);
-    setZoomCenterX(0);
-    setZoomCenterY(0);
     hasPinchedRef.current = false;
+    isPanningRef.current = false;
     lastScaleRef.current = 1;
     lastTranslateRef.current = { x: 0, y: 0 };
 
     touchStartXRef.current = 0;
     touchEndXRef.current = 0;
+    
+    // Reset transform
+    if (imageRef.current) {
+      imageRef.current.style.transform = 'scale(1) translate(0px, 0px)';
+    }
   };
 
   return (
@@ -162,11 +199,16 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
         {/* Media Content */}
         {currentMedia.media_type === 'image' ? (
           <img
+            ref={imageRef}
             src={currentMedia.media_url}
             alt={`Media ${currentIndex + 1}`}
             loading="lazy"
             decoding="async"
-            className="w-full h-auto max-h-[600px] object-contain select-none"
+            className="w-full h-auto max-h-[600px] object-contain select-none transition-transform"
+            style={{
+              transformOrigin: 'center',
+              touchAction: 'none',
+            }}
             draggable={false}
           />
         ) : (
@@ -208,14 +250,14 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
       </div>
 
       {/* Fullscreen Zoom Overlay - Instagram Style */}
-      {isZooming && scale > 1 && currentMedia.media_type === 'image' && (
+      {isZooming && scaleRef.current > 1 && currentMedia.media_type === 'image' && (
         <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center">
           <img
             src={currentMedia.media_url}
             alt={`Media ${currentIndex + 1}`}
             className="max-w-full max-h-full object-contain select-none"
             style={{
-              transform: `scale(${scale}) translate(${(translateX + zoomCenterX * (scale - 1)) / scale}px, ${(translateY + zoomCenterY * (scale - 1)) / scale}px)`,
+              transform: `scale(${scaleRef.current}) translate(${(translateXRef.current + zoomCenterXRef.current * (scaleRef.current - 1)) / scaleRef.current}px, ${(translateYRef.current + zoomCenterYRef.current * (scaleRef.current - 1)) / scaleRef.current}px)`,
               transformOrigin: 'center',
               touchAction: 'none',
             }}
@@ -223,7 +265,7 @@ const MediaCarousel = ({ media }: MediaCarouselProps) => {
           />
           {/* Zoom Level Indicator */}
           <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/60 text-white text-sm rounded-full backdrop-blur-sm">
-            {scale.toFixed(1)}x
+            {scaleRef.current.toFixed(1)}x
           </div>
         </div>
       )}
