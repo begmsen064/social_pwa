@@ -51,16 +51,17 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
     locale: tr,
   });
 
-  // Double tap to like
+  // Double tap to like/unlike
   const handleDoubleTap = () => {
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
 
     if (now - lastTap < DOUBLE_TAP_DELAY) {
-      // Double tap detected
+      // Double tap detected - toggle like
+      toggleLike();
+      
+      // Show animation only when liking (not unliking)
       if (!isLiked) {
-        toggleLike();
-        // Show animation
         setShowHeartAnimation(true);
         setTimeout(() => setShowHeartAnimation(false), 1000);
       }
