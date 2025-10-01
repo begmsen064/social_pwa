@@ -16,13 +16,10 @@ const Home = () => {
   const [error, setError] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [pullDistance, setPullDistance] = useState(0);
   const [filter, setFilter] = useState<'all' | 'following'>('all');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const touchStartY = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -260,99 +257,12 @@ const Home = () => {
     }
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    setPage(1);
-    setHasMore(true);
-    await Promise.all([
-      fetchPosts(true, 1), // Skip loading state during refresh
-      fetchUnreadNotifications(),
-      fetchUnreadMessages(),
-      refreshUser() // Refresh user points
-    ]);
-    setIsRefreshing(false);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (containerRef.current && containerRef.current.scrollTop === 0) {
-      touchStartY.current = e.touches[0].clientY;
-    } else {
-      // Not at top, reset
-      touchStartY.current = 0;
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    // Only work if we started at the top
-    if (touchStartY.current === 0) return;
-    
-    // Check if still at top
-    if (containerRef.current && containerRef.current.scrollTop === 0) {
-      const touchY = e.touches[0].clientY;
-      const distance = touchY - touchStartY.current;
-      
-      // Only activate on pull DOWN (positive distance)
-      if (distance > 0 && distance < 150) {
-        setPullDistance(distance);
-      } else if (distance < 0) {
-        // Started pulling up, reset
-        touchStartY.current = 0;
-        setPullDistance(0);
-      }
-    } else {
-      // Scrolled away from top, reset
-      touchStartY.current = 0;
-      setPullDistance(0);
-    }
-  };
-
-  const handleTouchEnd = async () => {
-    if (pullDistance > 80 && touchStartY.current > 0) {
-      await handleRefresh();
-    }
-    setPullDistance(0);
-    touchStartY.current = 0;
-  };
 
   return (
     <div 
       ref={containerRef}
       className="min-h-screen px-4 py-6 max-w-2xl mx-auto overflow-y-auto"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
-      {/* Pull to Refresh Indicator */}
-      {pullDistance > 0 && (
-        <div 
-          className="fixed top-0 left-0 right-0 flex justify-center items-center transition-all z-50"
-          style={{ 
-            transform: `translateY(${Math.min(pullDistance - 20, 60)}px)`,
-            opacity: Math.min(pullDistance / 80, 1)
-          }}
-        >
-          <div className="bg-white dark:bg-gray-900 rounded-full p-3 shadow-lg border border-gray-200 dark:border-gray-800">
-            {isRefreshing ? (
-              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <svg 
-                className="w-6 h-6 text-primary"
-                style={{ transform: `rotate(${Math.min(pullDistance * 2, 180)}deg)` }}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
-                />
-              </svg>
-            )}
-          </div>
-        </div>
-      )}
       {/* Header */}
       <div className="flex items-center justify-between pb-4 mb-6 border-b border-gray-200 dark:border-gray-800">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
