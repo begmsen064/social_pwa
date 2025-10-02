@@ -109,6 +109,7 @@ const MediaCarousel = ({ media, onDoubleTap, isLiked }: MediaCarouselProps) => {
               alt={`Media ${currentIndex + 1}`}
               loading="lazy"
               decoding="async"
+              crossOrigin="anonymous"
               className="max-w-full max-h-full object-contain select-none cursor-pointer"
               onClick={(e) => {
                 const now = Date.now();
@@ -285,6 +286,7 @@ const MediaCarousel = ({ media, onDoubleTap, isLiked }: MediaCarouselProps) => {
             <img
               src={currentMedia.media_url}
               alt={`Media ${currentIndex + 1}`}
+              crossOrigin="anonymous"
               className="max-w-full max-h-full object-contain select-none"
               draggable={false}
             />

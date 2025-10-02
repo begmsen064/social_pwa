@@ -181,6 +181,7 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
               alt={post.user.username}
               loading="lazy"
               decoding="async"
+              crossOrigin="anonymous"
               className="w-10 h-10 rounded-full object-cover"
             />
           ) : (
