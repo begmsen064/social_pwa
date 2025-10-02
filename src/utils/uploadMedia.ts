@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabase';
 import { compressImage, generateThumbnail } from './imageCompression';
+import { uploadToR2 } from './uploadToR2';
 
 export interface UploadedMedia {
   url: string;
@@ -9,14 +9,10 @@ export interface UploadedMedia {
 
 export const uploadMediaToStorage = async (
   file: File,
-  userId: string,
+  _userId: string, // Kept for backward compatibility but not used
   onProgress?: (progress: number) => void
 ): Promise<UploadedMedia> => {
   const isVideo = file.type.startsWith('video/');
-  const timestamp = Date.now();
-  const randomId = Math.random().toString(36).substring(7);
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${userId}/${timestamp}_${randomId}.${fileExt}`;
 
   let fileToUpload = file;
 
@@ -28,79 +24,24 @@ export const uploadMediaToStorage = async (
         maxHeight: 1920,
         quality: 0.85,
       });
+      if (onProgress) onProgress(30); // 30% after compression
     } catch (error) {
       console.error('Image compression failed, using original:', error);
     }
   }
 
-  // For large videos (>10MB), use chunked upload
-  const isLargeFile = fileToUpload.size > 10 * 1024 * 1024;
-  let uploadData;
-  let uploadError;
-
-  if (isLargeFile && isVideo) {
-    // Chunked upload for large videos
-    const chunkSize = 2 * 1024 * 1024; // 2MB chunks
-    const chunks = Math.ceil(fileToUpload.size / chunkSize);
-    
-    try {
-      for (let i = 0; i < chunks; i++) {
-        const start = i * chunkSize;
-        const end = Math.min(start + chunkSize, fileToUpload.size);
-        const chunk = fileToUpload.slice(start, end);
-        
-        const { data, error } = await supabase.storage
-          .from('posts')
-          .upload(fileName, chunk, {
-            contentType: file.type,
-            cacheControl: '3600',
-            upsert: i > 0, // First chunk creates, others upsert
-          });
-        
-        if (error) throw error;
-        
-        // Update progress for this chunk
-        if (onProgress) {
-          const chunkProgress = ((i + 1) / chunks) * 50; // First 50% is upload
-          onProgress(chunkProgress);
-        }
-        
-        if (i === chunks - 1) {
-          uploadData = data;
-        }
-      }
-    } catch (error: any) {
-      uploadError = error;
-    }
-  } else {
-    // Regular upload for small files
-    const result = await supabase.storage
-      .from('posts')
-      .upload(fileName, fileToUpload, {
-        contentType: file.type,
-        cacheControl: '3600',
-        upsert: false,
-      });
-    
-    uploadData = result.data;
-    uploadError = result.error;
-    
-    if (onProgress) {
-      onProgress(50); // 50% after upload completes
-    }
+  // Upload to Cloudflare R2
+  const folder = isVideo ? 'videos' : 'posts';
+  const uploadResult = await uploadToR2(fileToUpload, folder);
+  
+  if (!uploadResult) {
+    throw new Error('Upload to R2 failed');
   }
 
-  if (uploadError || !uploadData) {
-    throw new Error(`Upload failed: ${uploadError?.message || 'Unknown error'}`);
-  }
-
-  // Get public URL
-  const { data: urlData } = supabase.storage
-    .from('posts')
-    .getPublicUrl(uploadData.path);
+  if (onProgress) onProgress(70); // 70% after upload
 
   const result: UploadedMedia = {
-    url: urlData.publicUrl,
+    url: uploadResult.url,
     type: isVideo ? 'video' : 'image',
   };
 
@@ -108,38 +49,20 @@ export const uploadMediaToStorage = async (
   if (isVideo) {
     try {
       const thumbnailFile = await generateThumbnail(file);
-      const thumbnailFileName = `${userId}/${timestamp}_${randomId}_thumb.jpg`;
-
-      const { data: thumbData, error: thumbError } = await supabase.storage
-        .from('posts')
-        .upload(thumbnailFileName, thumbnailFile, {
-          contentType: 'image/jpeg',
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (!thumbError && thumbData) {
-        const { data: thumbUrlData } = supabase.storage
-          .from('posts')
-          .getPublicUrl(thumbData.path);
-
-        result.thumbnailUrl = thumbUrlData.publicUrl;
+      const thumbResult = await uploadToR2(thumbnailFile, 'videos');
+      
+      if (thumbResult) {
+        result.thumbnailUrl = thumbResult.url;
       }
       
-      if (onProgress) {
-        onProgress(100); // 100% after thumbnail
-      }
+      if (onProgress) onProgress(100); // 100% after thumbnail
     } catch (error) {
       console.error('Thumbnail generation failed:', error);
-      if (onProgress) {
-        onProgress(100); // Still mark as complete even if thumbnail fails
-      }
+      if (onProgress) onProgress(100); // Still mark as complete even if thumbnail fails
     }
   } else {
     // For images, mark as complete
-    if (onProgress) {
-      onProgress(100);
-    }
+    if (onProgress) onProgress(100);
   }
 
   return result;

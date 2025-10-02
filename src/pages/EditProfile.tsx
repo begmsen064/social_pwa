@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, X } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { supabase } from '../lib/supabase';
+import { uploadToR2 } from '../utils/uploadToR2';
 
 const EditProfile = () => {
   const navigate = useNavigate();
@@ -17,8 +18,8 @@ const EditProfile = () => {
 
   const getAvatarUrl = (avatarUrl: string | null | undefined) => {
     if (!avatarUrl) return null;
-    if (avatarUrl.startsWith('http')) return avatarUrl;
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${avatarUrl}`;
+    // R2 URLs already include full path
+    return avatarUrl;
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,24 +62,14 @@ const EditProfile = () => {
 
       // Upload avatar if changed
       if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-
-        // Delete old avatar if exists
-        if (user.avatar_url && !user.avatar_url.startsWith('http')) {
-          await supabase.storage.from('avatars').remove([user.avatar_url]);
+        // Upload to Cloudflare R2
+        const uploadResult = await uploadToR2(avatarFile, 'avatars');
+        
+        if (!uploadResult) {
+          throw new Error('Avatar yüklenemedi');
         }
-
-        // Upload new avatar
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, avatarFile, {
-            cacheControl: '3600',
-            upsert: false,
-          });
-
-        if (uploadError) throw uploadError;
-        avatarUrl = fileName;
+        
+        avatarUrl = uploadResult.url;
       }
 
       // Update profile
