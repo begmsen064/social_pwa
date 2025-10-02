@@ -25,18 +25,19 @@ const MediaCarousel = ({ media, onDoubleTap, isLiked }: MediaCarouselProps) => {
 
   // Handle swipe in PostCard view
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (currentMedia.media_type !== 'image') return;
+    // Allow swiping for all media types when there are multiple items
+    if (media.length <= 1) return;
     touchStartXRef.current = e.touches[0].clientX;
     touchEndXRef.current = e.touches[0].clientX;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (currentMedia.media_type !== 'image') return;
+    if (media.length <= 1) return;
     touchEndXRef.current = e.touches[0].clientX;
   };
 
   const handleTouchEnd = () => {
-    if (currentMedia.media_type !== 'image' || media.length <= 1) return;
+    if (media.length <= 1) return;
 
     const swipeDistance = touchStartXRef.current - touchEndXRef.current;
     const minSwipeDistance = 50;
@@ -146,13 +147,56 @@ const MediaCarousel = ({ media, onDoubleTap, isLiked }: MediaCarouselProps) => {
               draggable={false}
             />
           ) : (
-            <VideoPlayer
-              src={currentMedia.media_url}
-              className="w-full h-full"
-              autoPlay={false}
-              onDoubleTap={onDoubleTap}
-              isLiked={isLiked}
-            />
+            <div className="relative w-full h-full">
+              <VideoPlayer
+                src={currentMedia.media_url}
+                className="w-full h-full"
+                autoPlay={false}
+                onDoubleTap={onDoubleTap}
+                isLiked={isLiked}
+              />
+              {/* Invisible swipe zones for carousel navigation when video is present */}
+              {media.length > 1 && (
+                <>
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 w-16 z-20"
+                    style={{ pointerEvents: 'auto' }}
+                    onTouchStart={(e) => {
+                      touchStartXRef.current = e.touches[0].clientX;
+                      touchEndXRef.current = e.touches[0].clientX;
+                    }}
+                    onTouchMove={(e) => {
+                      touchEndXRef.current = e.touches[0].clientX;
+                    }}
+                    onTouchEnd={() => {
+                      const swipeDistance = touchStartXRef.current - touchEndXRef.current;
+                      if (swipeDistance < -50) {
+                        // Swiped right -> previous
+                        setCurrentIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1));
+                      }
+                    }}
+                  />
+                  <div 
+                    className="absolute right-0 top-0 bottom-0 w-16 z-20"
+                    style={{ pointerEvents: 'auto' }}
+                    onTouchStart={(e) => {
+                      touchStartXRef.current = e.touches[0].clientX;
+                      touchEndXRef.current = e.touches[0].clientX;
+                    }}
+                    onTouchMove={(e) => {
+                      touchEndXRef.current = e.touches[0].clientX;
+                    }}
+                    onTouchEnd={() => {
+                      const swipeDistance = touchStartXRef.current - touchEndXRef.current;
+                      if (swipeDistance > 50) {
+                        // Swiped left -> next
+                        setCurrentIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1));
+                      }
+                    }}
+                  />
+                </>
+              )}
+            </div>
           )}
         </div>
 
@@ -178,9 +222,9 @@ const MediaCarousel = ({ media, onDoubleTap, isLiked }: MediaCarouselProps) => {
         </div>
       )}
 
-        {/* Media Counter */}
+        {/* Media Counter - Top Left */}
         {media.length > 1 && (
-          <div className="absolute top-4 right-4 px-3 py-1 bg-black/70 text-white text-sm rounded-full backdrop-blur-sm">
+          <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/70 text-white text-sm font-medium rounded-full backdrop-blur-sm z-10">
             {currentIndex + 1} / {media.length}
           </div>
         )}
