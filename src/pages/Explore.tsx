@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, TrendingUp, Users } from 'lucide-react';
+import { Search, TrendingUp, Users, Hash } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { FollowButton } from '../components/FollowButton';
@@ -15,6 +15,11 @@ interface Profile {
   followers_count?: number;
 }
 
+interface HashtagResult {
+  tag: string;
+  count: number;
+}
+
 const Explore = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -23,6 +28,7 @@ const Explore = () => {
   const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<Profile[]>([]);
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
+  const [hashtagResults, setHashtagResults] = useState<HashtagResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
 
@@ -33,9 +39,10 @@ const Explore = () => {
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (searchQuery.trim()) {
-        searchUsers();
+        searchUsersAndHashtags();
       } else {
         setSearchResults([]);
+        setHashtagResults([]);
       }
     }, 300);
 
@@ -91,19 +98,58 @@ const Explore = () => {
     }
   };
 
-  const searchUsers = async () => {
+  const searchUsersAndHashtags = async () => {
     try {
       setSearching(true);
-      const { data } = await supabase
+      
+      // Search users
+      const { data: usersData } = await supabase
         .from('profiles')
         .select('*')
         .neq('id', user?.id || '')
         .or(`username.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%`)
         .limit(20);
 
-      setSearchResults(data || []);
+      setSearchResults(usersData || []);
+
+      // Search hashtags if query starts with # or contains letters
+      const cleanQuery = searchQuery.startsWith('#') ? searchQuery.substring(1) : searchQuery;
+      
+      if (cleanQuery.trim()) {
+        const { data: postsData } = await supabase
+          .from('posts')
+          .select('caption')
+          .not('caption', 'is', null)
+          .ilike('caption', `%#${cleanQuery}%`)
+          .limit(500);
+
+        if (postsData) {
+          // Extract and count hashtags
+          const hashtagCount: { [key: string]: number } = {};
+          postsData.forEach(post => {
+            if (post.caption) {
+              const hashtags = post.caption.match(/#[\wşŞıİğĞüÜöÖçÇ]+/g);
+              if (hashtags) {
+                hashtags.forEach((tag: string) => {
+                  const cleanTag = tag.substring(1).toLowerCase();
+                  if (cleanTag.includes(cleanQuery.toLowerCase())) {
+                    hashtagCount[cleanTag] = (hashtagCount[cleanTag] || 0) + 1;
+                  }
+                });
+              }
+            }
+          });
+
+          const hashtagArray = Object.entries(hashtagCount)
+            .map(([tag, count]) => ({ tag, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10);
+
+          setHashtagResults(hashtagArray);
+        }
+      }
     } catch (error) {
-      console.error('Error searching users:', error);
+      console.error('Error searching:', error);
     } finally {
       setSearching(false);
     }
@@ -132,7 +178,7 @@ const Explore = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Kullanıcı ara..."
+              placeholder="Kullanıcı veya #hashtag ara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
@@ -149,45 +195,83 @@ const Explore = () => {
       <div className="max-w-2xl mx-auto px-4 py-4">
         {/* Search Results */}
         {searchQuery.trim() && (
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Arama Sonuçları
-            </h2>
-            {searchResults.length > 0 ? (
-              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-                {searchResults.map((user) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition border-b border-gray-100 dark:border-gray-800 last:border-b-0"
-                  >
+          <div className="mb-6 space-y-4">
+            {/* Hashtag Results */}
+            {hashtagResults.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Hash className="w-5 h-5" />
+                  Hashtag'ler
+                </h2>
+                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                  {hashtagResults.map((result) => (
                     <div
-                      onClick={() => navigate(`/u/${user.username}`)}
-                      className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
+                      key={result.tag}
+                      onClick={() => navigate(`/hashtag/${result.tag}`)}
+                      className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition border-b border-gray-100 dark:border-gray-800 last:border-b-0 cursor-pointer"
                     >
-                      {user.avatar_url && getAvatarUrl(user.avatar_url) ? (
-                        <img
-                          src={getAvatarUrl(user.avatar_url) || ''}
-                          alt={user.username}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold">
-                          {user.username[0]?.toUpperCase()}
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                          <Hash className="w-6 h-6 text-primary" />
                         </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{user.full_name}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">@{user.username}</p>
+                        <div>
+                          <p className="font-semibold text-primary">#{result.tag}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{result.count} gönderi</p>
+                        </div>
                       </div>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
-                    <FollowButton userId={user.id} compact />
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            ) : !searching ? (
+            )}
+
+            {/* User Results */}
+            {searchResults.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Kullanıcılar
+                </h2>
+                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                  {searchResults.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition border-b border-gray-100 dark:border-gray-800 last:border-b-0"
+                    >
+                      <div
+                        onClick={() => navigate(`/u/${user.username}`)}
+                        className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
+                      >
+                        {user.avatar_url && getAvatarUrl(user.avatar_url) ? (
+                          <img
+                            src={getAvatarUrl(user.avatar_url) || ''}
+                            alt={user.username}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold">
+                            {user.username[0]?.toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{user.full_name}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">@{user.username}</p>
+                        </div>
+                      </div>
+                      <FollowButton userId={user.id} compact />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No Results */}
+            {!searching && searchResults.length === 0 && hashtagResults.length === 0 && (
               <p className="text-center text-gray-500 dark:text-gray-400 py-8">Sonuç bulunamadı</p>
-            ) : null}
+            )}
           </div>
         )}
 
