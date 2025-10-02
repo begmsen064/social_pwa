@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Eye, EyeOff, Mail, Lock, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -13,6 +13,15 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [emailValid, setEmailValid] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+
+  // Validate email in real-time
+  useEffect(() => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    setEmailValid(emailRegex.test(email));
+  }, [email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,10 +77,29 @@ const Login = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-600"
+                  onBlur={() => setEmailTouched(true)}
+                  className={`w-full pl-10 pr-10 py-3 rounded-lg border ${
+                    emailTouched && email && !emailValid
+                      ? 'border-red-500 dark:border-red-500'
+                      : 'border-gray-300 dark:border-gray-700'
+                  } bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-600`}
                   placeholder="ornek@email.com"
                 />
+                {emailTouched && email && (
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    {emailValid ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-red-500" />
+                    )}
+                  </div>
+                )}
               </div>
+              {emailTouched && email && !emailValid && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  Geçerli bir e-posta adresi girin
+                </p>
+              )}
             </div>
 
             <div>
@@ -97,7 +125,12 @@ const Login = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-600"
+                  onBlur={() => setPasswordTouched(true)}
+                  className={`w-full pl-10 pr-12 py-3 rounded-lg border ${
+                    passwordTouched && password && password.length < 6
+                      ? 'border-yellow-500 dark:border-yellow-500'
+                      : 'border-gray-300 dark:border-gray-700'
+                  } bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-600`}
                   placeholder="••••••••"
                 />
                 <button
@@ -108,6 +141,11 @@ const Login = () => {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              {passwordTouched && password && password.length < 6 && (
+                <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
+                  Şifre en az 6 karakter olmalıdır
+                </p>
+              )}
             </div>
 
             {/* Remember Me */}
@@ -126,7 +164,7 @@ const Login = () => {
 
             <button
               type="submit"
-              disabled={loading || success}
+              disabled={loading || success || (emailTouched && !emailValid)}
               className="w-full bg-gradient-to-r from-primary to-secondary text-white py-3 px-4 rounded-lg font-semibold hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
             >
               <span className="absolute inset-0 w-full h-full bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
