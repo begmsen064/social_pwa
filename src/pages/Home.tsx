@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -22,9 +22,13 @@ const Home = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
+  const isRefreshingRef = useRef(false);
 
   // Manual refresh function
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
+    // Set flag to prevent double fetch
+    isRefreshingRef.current = true;
+    
     // Scroll to top smoothly
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
@@ -42,22 +46,26 @@ const Home = () => {
       await fetchUnreadNotifications();
       await fetchUnreadMessages();
     }
-  };
+    
+    // Reset flag after a short delay to allow user state update
+    setTimeout(() => {
+      isRefreshingRef.current = false;
+    }, 100);
+  }, [user, refreshUser]); // Only recreate when user or refreshUser changes
 
   // Listen for refresh event from BottomNav
   useEffect(() => {
-    const handleHomeRefreshEvent = () => {
-      handleRefresh();
-    };
-    
-    window.addEventListener('refreshHome', handleHomeRefreshEvent);
+    window.addEventListener('refreshHome', handleRefresh);
     
     return () => {
-      window.removeEventListener('refreshHome', handleHomeRefreshEvent);
+      window.removeEventListener('refreshHome', handleRefresh);
     };
-  }, [user]);
+  }, [handleRefresh]); // Update listener when handleRefresh changes
 
   useEffect(() => {
+    // Skip if currently refreshing to prevent double fetch
+    if (isRefreshingRef.current) return;
+    
     // Reset pagination when filter changes
     setPage(1);
     setHasMore(true);
