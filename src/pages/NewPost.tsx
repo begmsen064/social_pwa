@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import MediaUploader from '../components/MediaUploader';
 import { uploadMultipleMedia } from '../utils/uploadMedia';
 import { TURKISH_CITIES } from '../data/cities';
+import { addWatermarkToMedia } from '../utils/watermark';
 
 const NewPost = () => {
   const navigate = useNavigate();
@@ -219,14 +220,31 @@ const NewPost = () => {
       }, 30000); // Every 30 seconds
 
       try {
-        // 1. Upload media files
+        // 1. Add watermark to media files
+        setUploadStatus('Watermark ekleniyor...');
+        const watermarkedFiles: File[] = [];
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          try {
+            const watermarkedFile = await addWatermarkToMedia(file, user.username);
+            watermarkedFiles.push(watermarkedFile);
+            setUploadProgress((i + 1) / selectedFiles.length * 20); // 0-20% for watermarking
+          } catch (error) {
+            console.error('Watermark error for file:', file.name, error);
+            // If watermark fails, use original file
+            watermarkedFiles.push(file);
+          }
+        }
+
+        // 2. Upload media files
         const uploadedMedia = await uploadMultipleMedia(
-          selectedFiles,
+          watermarkedFiles,
           user.id,
           (progress) => {
-            setUploadProgress(progress);
+            const adjustedProgress = 20 + (progress * 0.8); // 20-100%
+            setUploadProgress(adjustedProgress);
             if (progress < 50) {
-              setUploadStatus(`Yükleniyor... ${Math.round(progress)}%`);
+              setUploadStatus(`Yükleniyor... ${Math.round(adjustedProgress)}%`);
             } else if (progress < 100) {
               setUploadStatus('Thumbnail oluşturuluyor...');
             }
