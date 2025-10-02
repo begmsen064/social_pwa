@@ -15,6 +15,7 @@ const NewPost = () => {
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
+  const [uploadStatus, setUploadStatus] = useState('');
 
   const handleMediaChange = (files: File[]) => {
     setSelectedFiles(files);
@@ -30,69 +31,101 @@ const NewPost = () => {
 
     setLoading(true);
     setError('');
+    setUploadStatus('Medya dosyaları yükleniyor...');
 
     try {
-      // 1. Upload media files
-      const uploadedMedia = await uploadMultipleMedia(
-        selectedFiles,
-        user.id,
-        (progress) => setUploadProgress(progress)
-      );
+      // Keep connection alive during upload
+      const keepAliveInterval = setInterval(async () => {
+        try {
+          // Ping Supabase to keep connection alive
+          await supabase.from('profiles').select('id').limit(1).single();
+        } catch (err) {
+          console.log('Keep-alive ping:', err);
+        }
+      }, 30000); // Every 30 seconds
 
-      // 2. Create post in database
-      const { data: postData, error: postError } = await supabase
-        .from('posts')
-        .insert({
-          user_id: user.id,
-          caption: caption.trim() || null,
-          location: location.trim() || null,
-          price: price, // Premium content fiyatı
-          likes_count: 0,
-          dislikes_count: 0,
-          comments_count: 0,
-        })
-        .select()
-        .single();
+      try {
+        // 1. Upload media files
+        const uploadedMedia = await uploadMultipleMedia(
+          selectedFiles,
+          user.id,
+          (progress) => {
+            setUploadProgress(progress);
+            if (progress < 50) {
+              setUploadStatus(`Yükleniyor... ${Math.round(progress)}%`);
+            } else if (progress < 100) {
+              setUploadStatus('Thumbnail oluşturuluyor...');
+            }
+          }
+        );
+        
+        clearInterval(keepAliveInterval);
+        setUploadStatus('Post oluşturuluyor...');
 
-      if (postError) throw postError;
+        // 2. Create post in database
+        setUploadStatus('Post veritabanına kaydediliyor...');
+        const { data: postData, error: postError } = await supabase
+          .from('posts')
+          .insert({
+            user_id: user.id,
+            caption: caption.trim() || null,
+            location: location.trim() || null,
+            price: price, // Premium content fiyatı
+            likes_count: 0,
+            dislikes_count: 0,
+            comments_count: 0,
+          })
+          .select()
+          .single();
 
-      // 3. Insert post media
-      const mediaInserts = uploadedMedia.map((media, index) => ({
-        post_id: postData.id,
-        media_url: media.url,
-        media_type: media.type,
-        order_index: index,
-        thumbnail_url: media.thumbnailUrl || null,
-      }));
+        if (postError) throw postError;
 
-      const { error: mediaError } = await supabase
-        .from('post_media')
-        .insert(mediaInserts);
+        // 3. Insert post media
+        setUploadStatus('Medya bağlantıları oluşturuluyor...');
+        const mediaInserts = uploadedMedia.map((media, index) => ({
+          post_id: postData.id,
+          media_url: media.url,
+          media_type: media.type,
+          order_index: index,
+          thumbnail_url: media.thumbnailUrl || null,
+        }));
 
-      if (mediaError) throw mediaError;
+        const { error: mediaError } = await supabase
+          .from('post_media')
+          .insert(mediaInserts);
 
-      // 4. Add points to user
-      const { error: pointsError } = await supabase
-        .from('user_points_history')
-        .insert({
-          user_id: user.id,
-          points: 10,
-          action_type: 'post',
-          reference_id: postData.id,
-        });
+        if (mediaError) throw mediaError;
 
-      if (pointsError) throw pointsError;
+        // 4. Add points to user
+        setUploadStatus('Puanlar ekleniyor...');
+        const { error: pointsError } = await supabase
+          .from('user_points_history')
+          .insert({
+            user_id: user.id,
+            points: 10,
+            action_type: 'post',
+            reference_id: postData.id,
+          });
 
-      // 5. Update user's total points
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ total_points: (user.total_points || 0) + 10 })
-        .eq('id', user.id);
+        if (pointsError) throw pointsError;
 
-      if (updateError) throw updateError;
+        // 5. Update user's total points
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ total_points: (user.total_points || 0) + 10 })
+          .eq('id', user.id);
 
-      // Success! Navigate to home
-      navigate('/home', { replace: true });
+        if (updateError) throw updateError;
+
+        setUploadStatus('Tamamlandı! Yönlendiriliyor...');
+        // Success! Navigate to home
+        setTimeout(() => {
+          navigate('/home', { replace: true });
+        }, 500);
+      } catch (uploadError) {
+        clearInterval(keepAliveInterval);
+        throw uploadError;
+      }
     } catch (err: any) {
       console.error('Post creation error:', err);
       setError(err.message || 'Post oluşturulurken bir hata oluştu');
@@ -149,22 +182,31 @@ const NewPost = () => {
       )}
 
       {/* Upload Progress */}
-      {loading && uploadProgress > 0 && uploadProgress < 100 && (
+      {loading && (
         <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-              Yükleniyor...
+              {uploadStatus}
             </span>
-            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-              {Math.round(uploadProgress)}%
-            </span>
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                %{Math.round(uploadProgress)}
+              </span>
+            )}
           </div>
-          <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${uploadProgress}%` }}
-            ></div>
-          </div>
+          {uploadProgress > 0 && uploadProgress < 100 && (
+            <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+          )}
+          {uploadProgress >= 100 && (
+            <div className="flex items-center justify-center mt-2">
+              <div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
         </div>
       )}
 

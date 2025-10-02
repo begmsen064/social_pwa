@@ -9,7 +9,8 @@ export interface UploadedMedia {
 
 export const uploadMediaToStorage = async (
   file: File,
-  userId: string
+  userId: string,
+  onProgress?: (progress: number) => void
 ): Promise<UploadedMedia> => {
   const isVideo = file.type.startsWith('video/');
   const timestamp = Date.now();
@@ -32,17 +33,65 @@ export const uploadMediaToStorage = async (
     }
   }
 
-  // Upload main file
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from('posts')
-    .upload(fileName, fileToUpload, {
-      contentType: file.type,
-      cacheControl: '3600',
-      upsert: false,
-    });
+  // For large videos (>10MB), use chunked upload
+  const isLargeFile = fileToUpload.size > 10 * 1024 * 1024;
+  let uploadData;
+  let uploadError;
 
-  if (uploadError) {
-    throw new Error(`Upload failed: ${uploadError.message}`);
+  if (isLargeFile && isVideo) {
+    // Chunked upload for large videos
+    const chunkSize = 2 * 1024 * 1024; // 2MB chunks
+    const chunks = Math.ceil(fileToUpload.size / chunkSize);
+    
+    try {
+      for (let i = 0; i < chunks; i++) {
+        const start = i * chunkSize;
+        const end = Math.min(start + chunkSize, fileToUpload.size);
+        const chunk = fileToUpload.slice(start, end);
+        
+        const { data, error } = await supabase.storage
+          .from('posts')
+          .upload(fileName, chunk, {
+            contentType: file.type,
+            cacheControl: '3600',
+            upsert: i > 0, // First chunk creates, others upsert
+          });
+        
+        if (error) throw error;
+        
+        // Update progress for this chunk
+        if (onProgress) {
+          const chunkProgress = ((i + 1) / chunks) * 50; // First 50% is upload
+          onProgress(chunkProgress);
+        }
+        
+        if (i === chunks - 1) {
+          uploadData = data;
+        }
+      }
+    } catch (error: any) {
+      uploadError = error;
+    }
+  } else {
+    // Regular upload for small files
+    const result = await supabase.storage
+      .from('posts')
+      .upload(fileName, fileToUpload, {
+        contentType: file.type,
+        cacheControl: '3600',
+        upsert: false,
+      });
+    
+    uploadData = result.data;
+    uploadError = result.error;
+    
+    if (onProgress) {
+      onProgress(50); // 50% after upload completes
+    }
+  }
+
+  if (uploadError || !uploadData) {
+    throw new Error(`Upload failed: ${uploadError?.message || 'Unknown error'}`);
   }
 
   // Get public URL
@@ -76,8 +125,20 @@ export const uploadMediaToStorage = async (
 
         result.thumbnailUrl = thumbUrlData.publicUrl;
       }
+      
+      if (onProgress) {
+        onProgress(100); // 100% after thumbnail
+      }
     } catch (error) {
       console.error('Thumbnail generation failed:', error);
+      if (onProgress) {
+        onProgress(100); // Still mark as complete even if thumbnail fails
+      }
+    }
+  } else {
+    // For images, mark as complete
+    if (onProgress) {
+      onProgress(100);
     }
   }
 
@@ -95,12 +156,18 @@ export const uploadMultipleMedia = async (
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     try {
-      const uploaded = await uploadMediaToStorage(file, userId);
-      results.push(uploaded);
+      // Individual file progress callback
+      const fileProgress = (filePercent: number) => {
+        if (onProgress) {
+          // Calculate overall progress: previous files + current file progress
+          const previousFilesProgress = (i / total) * 100;
+          const currentFileProgress = (filePercent / 100) * (100 / total);
+          onProgress(previousFilesProgress + currentFileProgress);
+        }
+      };
       
-      if (onProgress) {
-        onProgress(((i + 1) / total) * 100);
-      }
+      const uploaded = await uploadMediaToStorage(file, userId, fileProgress);
+      results.push(uploaded);
     } catch (error) {
       console.error(`Failed to upload ${file.name}:`, error);
       throw error;
