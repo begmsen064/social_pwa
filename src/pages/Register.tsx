@@ -9,6 +9,7 @@ const Register = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    confirmPassword: '',
     username: '',
   });
   const [loading, setLoading] = useState(false);
@@ -20,6 +21,7 @@ const Register = () => {
     email: { valid: false, message: '' },
     username: { valid: false, message: '' },
     password: { valid: false, message: '' },
+    confirmPassword: { valid: false, message: '' },
   });
 
   // Calculate password strength
@@ -82,7 +84,18 @@ const Register = () => {
         }
       }));
     }
-  }, [formData.email, formData.username, formData.password]);
+
+    // Validate password confirmation
+    if (formData.confirmPassword) {
+      setValidations(prev => ({
+        ...prev,
+        confirmPassword: {
+          valid: formData.password === formData.confirmPassword,
+          message: formData.password === formData.confirmPassword ? '' : 'Şifreler eşleşmiyor'
+        }
+      }));
+    }
+  }, [formData.email, formData.username, formData.password, formData.confirmPassword]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -97,6 +110,11 @@ const Register = () => {
 
     if (formData.password.length < 6) {
       setError('Şifre en az 6 karakter olmalıdır');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Şifreler eşleşmiyor');
       return;
     }
 
@@ -167,7 +185,7 @@ const Register = () => {
                       ? 'border-red-500 dark:border-red-500'
                       : 'border-gray-300 dark:border-gray-700'
                   } bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-600`}
-                  placeholder="ahmetyilmaz"
+                  placeholder="username"
                 />
                 {formData.username && (
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -280,6 +298,46 @@ const Register = () => {
                     En az 6 karakter (büyük/küçük harf, rakam ve özel karakter kullanın)
                   </p>
                 </div>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Şifre Tekrarı
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full pl-10 pr-10 py-3 rounded-lg border ${
+                    formData.confirmPassword && !validations.confirmPassword.valid
+                      ? 'border-red-500 dark:border-red-500'
+                      : 'border-gray-300 dark:border-gray-700'
+                  } bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-600`}
+                  placeholder="••••••••"
+                />
+                {formData.confirmPassword && (
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    {validations.confirmPassword.valid ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-red-500" />
+                    )}
+                  </div>
+                )}
+              </div>
+              {formData.confirmPassword && validations.confirmPassword.message && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  {validations.confirmPassword.message}
+                </p>
               )}
             </div>
 
