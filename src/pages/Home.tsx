@@ -171,7 +171,10 @@ const Home = () => {
       setPosts(newPosts);
     } catch (err: any) {
       console.error('Error fetching posts:', err);
-      setError('Postlar yüklenirken bir hata oluştu');
+      // Don't show error if it's just an empty following list
+      if (filter !== 'following') {
+        setError('Postlar yüklenirken bir hata oluştu');
+      }
     } finally {
       if (!skipLoading) {
         setLoading(false);
@@ -431,18 +434,40 @@ const Home = () => {
               </div>
             </>
           ) : (
-            <div className="bg-white dark:bg-gray-900 rounded-xl p-12 border border-gray-200 dark:border-gray-800 text-center">
-              <div className="text-6xl mb-4">📸</div>
-              <h3 className="text-xl font-bold mb-2">Henüz post yok</h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
-                İlk postu sen paylaş!
-              </p>
-              <a
-                href="/post/new"
-                className="inline-block px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold hover:shadow-lg transition-all"
-              >
-                Yeni Post Paylaş
-              </a>
+            <div className="flex items-center justify-center py-12 px-4">
+              <div className="bg-white dark:bg-gray-900 rounded-xl p-12 border border-gray-200 dark:border-gray-800 text-center max-w-md">
+                {filter === 'following' ? (
+                  <>
+                    <div className="text-6xl mb-4">👥</div>
+                    <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+                      Henüz kimseyi takip etmiyorsun
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-6">
+                      Keşfet sayfasından ilginç kişileri keşfet ve takip et!
+                    </p>
+                    <button
+                      onClick={() => navigate('/explore')}
+                      className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all"
+                    >
+                      Keşfedin
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-6xl mb-4">📸</div>
+                    <h3 className="text-xl font-bold mb-2">Henüz post yok</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">
+                      İlk postu sen paylaş!
+                    </p>
+                    <a
+                      href="/post/new"
+                      className="inline-block px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+                    >
+                      Yeni Post Paylaş
+                    </a>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </div>
