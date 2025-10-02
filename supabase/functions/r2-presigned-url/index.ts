@@ -1,20 +1,48 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createHash, HmacSha256 } from 'https://deno.land/std@0.177.0/hash/mod.ts';
+import { crypto } from 'https://deno.land/std@0.168.0/crypto/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper functions for AWS v4 signature
+async function hmac(key: Uint8Array | string, data: string): Promise<ArrayBuffer> {
+  const encoder = new TextEncoder();
+  const keyData = typeof key === 'string' ? encoder.encode(key) : key;
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  return await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(data));
+}
+
+async function sha256(data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const hash = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function toHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 // Generate AWS v4 signature for presigned URL
-function generatePresignedUrl(
+async function generatePresignedUrl(
   accountId: string,
   bucketName: string,
   accessKeyId: string,
   secretAccessKey: string,
   objectKey: string,
   expiresIn: number = 600
-): string {
+): Promise<string> {
   const region = 'auto';
   const service = 's3';
   const host = `${accountId}.r2.cloudflarestorage.com`;
@@ -47,10 +75,7 @@ function generatePresignedUrl(
   ].join('\n');
   
   // Create string to sign
-  const encoder = new TextEncoder();
-  const hash = createHash('sha256');
-  hash.update(encoder.encode(canonicalRequest));
-  const canonicalRequestHash = hash.toString();
+  const canonicalRequestHash = await sha256(canonicalRequest);
   
   const stringToSign = [
     algorithm,
@@ -60,11 +85,12 @@ function generatePresignedUrl(
   ].join('\n');
   
   // Calculate signature
-  const kDate = new HmacSha256(encoder.encode('AWS4' + secretAccessKey)).update(dateStamp).arrayBuffer();
-  const kRegion = new HmacSha256(new Uint8Array(kDate)).update(region).arrayBuffer();
-  const kService = new HmacSha256(new Uint8Array(kRegion)).update(service).arrayBuffer();
-  const kSigning = new HmacSha256(new Uint8Array(kService)).update('aws4_request').arrayBuffer();
-  const signature = new HmacSha256(new Uint8Array(kSigning)).update(stringToSign).hex();
+  const kDate = await hmac('AWS4' + secretAccessKey, dateStamp);
+  const kRegion = await hmac(new Uint8Array(kDate), region);
+  const kService = await hmac(new Uint8Array(kRegion), service);
+  const kSigning = await hmac(new Uint8Array(kService), 'aws4_request');
+  const signatureBuffer = await hmac(new Uint8Array(kSigning), stringToSign);
+  const signature = toHex(signatureBuffer);
   
   queryParams.set('X-Amz-Signature', signature);
   
@@ -103,7 +129,7 @@ serve(async (req) => {
     const uniqueFileName = `${folder}/${timestamp}-${randomStr}.${fileExtension}`;
 
     // Generate presigned URL (valid for 10 minutes)
-    const presignedUrl = generatePresignedUrl(
+    const presignedUrl = await generatePresignedUrl(
       accountId,
       bucketName,
       accessKeyId,
