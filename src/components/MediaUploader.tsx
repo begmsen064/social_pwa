@@ -136,10 +136,7 @@ const MediaUploader = ({ onMediaChange, maxFiles = 10 }: MediaUploaderProps) => 
             Sürükle & bırak veya tıklayın
           </p>
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            PNG, JPG, GIF, MP4, MOV veya WEBM (max {maxFiles} dosya)
-          </p>
-          <p className="text-xs text-orange-500 dark:text-orange-400 mt-1">
-            ⚠️ Videolar maksimum 4MB olmalıdır
+            PNG, JPG, GIF, MP4, MOV veya WEBM (max {maxFiles} dosya, 50MB)
           </p>
         </div>
       </div>
