@@ -51,10 +51,11 @@ serve(async (req) => {
     const fileExtension = fileName.split('.').pop();
     const uniqueFileName = `${folder}/${timestamp}-${randomStr}.${fileExtension}`;
 
-    // Upload to R2
+    // Upload to R2 with proper headers
     await s3Client.putObject(uniqueFileName, fileData, {
       metadata: {
         'Content-Type': fileType || 'application/octet-stream',
+        'Cache-Control': 'public, max-age=31536000',
       },
     });
 

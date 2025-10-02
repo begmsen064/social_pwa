@@ -65,28 +65,48 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
       }
     };
     const handleError = (e: Event) => {
-      console.error('Video error:', e);
+      const target = e.target as HTMLVideoElement;
+      const error = target?.error;
+      
+      console.error('Video error:', {
+        code: error?.code,
+        message: error?.message,
+        src: src,
+      });
+
+      // Check for specific error codes
+      if (error) {
+        // MEDIA_ERR_SRC_NOT_SUPPORTED (code 4) - often CORS or format issue
+        // MEDIA_ERR_NETWORK (code 2) - network issue
+        if (error.code === 4) {
+          console.error('Video format not supported or CORS issue');
+        } else if (error.code === 2) {
+          console.error('Network error loading video');
+        }
+      }
+      
       // Don't show error immediately, might be temporary or network issue
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
-      // Wait longer for large videos - 10 seconds
+      
+      // Wait longer for large videos - 5 seconds for first attempt
       loadTimeoutRef.current = setTimeout(() => {
         // Auto-retry once for network issues
         if (retryCount === 0) {
           console.log('Auto-retrying video load...');
           setRetryCount(1);
           video.load();
-          // If still fails after another 10s, show error
+          // If still fails after another 5s, show error
           loadTimeoutRef.current = setTimeout(() => {
             setHasError(true);
             setIsLoading(false);
-          }, 10000);
+          }, 5000);
         } else {
           setHasError(true);
           setIsLoading(false);
         }
-      }, 10000);
+      }, 5000);
     };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
