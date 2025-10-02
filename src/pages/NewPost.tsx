@@ -27,14 +27,34 @@ const NewPost = () => {
     setError('');
   };
 
+  // Normalize Turkish characters for search
+  const normalizeTurkish = (text: string): string => {
+    return text
+      .replace(/İ/g, 'i')
+      .replace(/I/g, 'i')
+      .replace(/ı/g, 'i')
+      .replace(/Ğ/g, 'g')
+      .replace(/ğ/g, 'g')
+      .replace(/Ü/g, 'u')
+      .replace(/ü/g, 'u')
+      .replace(/Ş/g, 's')
+      .replace(/ş/g, 's')
+      .replace(/Ö/g, 'o')
+      .replace(/ö/g, 'o')
+      .replace(/Ç/g, 'c')
+      .replace(/ç/g, 'c')
+      .toLowerCase();
+  };
+
   // Handle location input change
   const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setLocation(value);
 
     if (value.trim()) {
+      const normalizedValue = normalizeTurkish(value);
       const filtered = TURKISH_CITIES.filter(city =>
-        city.toLowerCase().includes(value.toLowerCase())
+        normalizeTurkish(city).includes(normalizedValue)
       );
       setFilteredCities(filtered);
       setShowCitySuggestions(true);
@@ -310,8 +330,9 @@ const NewPost = () => {
             onChange={handleLocationChange}
             onFocus={() => {
               if (location.trim()) {
+                const normalizedValue = normalizeTurkish(location);
                 const filtered = TURKISH_CITIES.filter(city =>
-                  city.toLowerCase().includes(location.toLowerCase())
+                  normalizeTurkish(city).includes(normalizedValue)
                 );
                 setFilteredCities(filtered);
                 setShowCitySuggestions(true);
