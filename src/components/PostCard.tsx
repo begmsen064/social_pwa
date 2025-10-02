@@ -14,6 +14,7 @@ import { LikersModal } from './LikersModal';
 import { PurchaseModal } from './PurchaseModal';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
+import { renderTextWithHashtags } from '../utils/hashtag';
 
 interface PostCardProps {
   post: Post;
@@ -374,13 +375,16 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
                 {post.user?.username}
               </span>
               {post.caption.length <= 100 ? (
-                post.caption
+                renderTextWithHashtags(post.caption)
               ) : showFullCaption ? (
                 <>
-                  {post.caption}
+                  {renderTextWithHashtags(post.caption)}
                   {' '}
                   <button
-                    onClick={() => setShowFullCaption(false)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowFullCaption(false);
+                    }}
                     className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     kapat
@@ -388,10 +392,13 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
                 </>
               ) : (
                 <>
-                  {post.caption.substring(0, 100)}...
+                  {renderTextWithHashtags(post.caption.substring(0, 100))}...
                   {' '}
                   <button
-                    onClick={() => setShowFullCaption(true)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowFullCaption(true);
+                    }}
                     className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     daha

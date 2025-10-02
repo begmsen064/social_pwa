@@ -23,6 +23,7 @@ const EditProfile = lazy(() => import('./pages/EditProfile'));
 const Messages = lazy(() => import('./pages/Messages'));
 const Chat = lazy(() => import('./pages/Chat'));
 const Leaderboard = lazy(() => import('./pages/Leaderboard'));
+const HashtagFeed = lazy(() => import('./pages/HashtagFeed'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -87,6 +88,7 @@ function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="profile/edit" element={<EditProfile />} />
             <Route path="u/:username" element={<UserProfile />} />
+            <Route path="hashtag/:tag" element={<HashtagFeed />} />
           </Route>
 
           {/* Chat - Outside Layout (no bottom nav) */}
