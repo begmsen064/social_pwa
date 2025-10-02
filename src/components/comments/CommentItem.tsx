@@ -11,8 +11,9 @@ export const CommentItem = ({ comment }: CommentItemProps) => {
   
   const getAvatarUrl = (avatarUrl: string | null) => {
     if (!avatarUrl) return null;
-    if (avatarUrl.startsWith('http')) return avatarUrl;
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${avatarUrl}`;
+    const trimmedUrl = avatarUrl.trim();
+    if (trimmedUrl.startsWith('http')) return trimmedUrl;
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${trimmedUrl}`;
   };
 
   return (
@@ -29,6 +30,7 @@ export const CommentItem = ({ comment }: CommentItemProps) => {
           <img
             src={getAvatarUrl(comment.user.avatar_url) || ''}
             alt={comment.user.username}
+            crossOrigin="anonymous"
             className="w-8 h-8 rounded-full object-cover hover:opacity-75 transition"
           />
         ) : (

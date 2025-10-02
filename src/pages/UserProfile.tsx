@@ -121,13 +121,15 @@ const UserProfile = () => {
 
   const getAvatarUrl = (avatarUrl: string | null) => {
     if (!avatarUrl) return null;
-    if (avatarUrl.startsWith('http')) return avatarUrl;
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${avatarUrl}`;
+    const trimmedUrl = avatarUrl.trim();
+    if (trimmedUrl.startsWith('http')) return trimmedUrl;
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${trimmedUrl}`;
   };
 
   const getMediaUrl = (mediaUrl: string) => {
-    if (mediaUrl.startsWith('http')) return mediaUrl;
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/posts/${mediaUrl}`;
+    const trimmedUrl = mediaUrl.trim();
+    if (trimmedUrl.startsWith('http')) return trimmedUrl;
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/posts/${trimmedUrl}`;
   };
 
   if (loading) {
@@ -186,6 +188,7 @@ const UserProfile = () => {
             <img
               src={getAvatarUrl(profile.avatar_url) || ''}
               alt={profile.username}
+              crossOrigin="anonymous"
               className="w-20 h-20 rounded-full object-cover"
             />
           ) : (
@@ -374,6 +377,7 @@ const UserProfile = () => {
                       <img
                         src={getMediaUrl(post.media[0].media_url)}
                         alt="Post"
+                        crossOrigin="anonymous"
                         className="w-full h-full object-cover"
                       />
                     )

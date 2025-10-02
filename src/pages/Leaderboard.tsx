@@ -63,8 +63,9 @@ const Leaderboard = () => {
 
   const getAvatarUrl = (avatarUrl: string | null) => {
     if (!avatarUrl) return null;
-    if (avatarUrl.startsWith('http')) return avatarUrl;
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${avatarUrl}`;
+    const trimmedUrl = avatarUrl.trim();
+    if (trimmedUrl.startsWith('http')) return trimmedUrl;
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${trimmedUrl}`;
   };
 
   const getRankIcon = (rank: number) => {
@@ -164,6 +165,7 @@ const Leaderboard = () => {
                         <img
                           src={getAvatarUrl(users[1].avatar_url) || ''}
                           alt={users[1].username}
+                          crossOrigin="anonymous"
                           className="w-16 h-16 rounded-full object-cover mx-auto border-4 border-gray-400"
                         />
                       ) : (
@@ -191,6 +193,7 @@ const Leaderboard = () => {
                         <img
                           src={getAvatarUrl(users[0].avatar_url) || ''}
                           alt={users[0].username}
+                          crossOrigin="anonymous"
                           className="w-20 h-20 rounded-full object-cover mx-auto border-4 border-yellow-500"
                         />
                       ) : (
@@ -218,6 +221,7 @@ const Leaderboard = () => {
                         <img
                           src={getAvatarUrl(users[2].avatar_url) || ''} 
                           alt={users[2].username}
+                          crossOrigin="anonymous"
                           className="w-16 h-16 rounded-full object-cover mx-auto border-4 border-amber-700"
                         />
                       ) : (
@@ -265,6 +269,7 @@ const Leaderboard = () => {
                     <img
                       src={getAvatarUrl(userItem.avatar_url) || ''}
                       alt={userItem.username}
+                      crossOrigin="anonymous"
                       className="w-12 h-12 rounded-full object-cover"
                     />
                   ) : (

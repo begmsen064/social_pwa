@@ -83,14 +83,16 @@ const Profile = () => {
 
   const getAvatarUrl = (avatarUrl: string | null) => {
     if (!avatarUrl) return null;
-    if (avatarUrl.startsWith('http')) return avatarUrl;
-    // Avatar filename includes timestamp (userid-timestamp.ext) which naturally busts cache
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${avatarUrl}`;
+    const trimmedUrl = avatarUrl.trim();
+    if (trimmedUrl.startsWith('http')) return trimmedUrl;
+    // Extract timestamp from filename (format: userid-timestamp.ext)
+    // This provides natural cache busting as filename changes on each upload
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${trimmedUrl}`;
   };
-
   const getMediaUrl = (mediaUrl: string) => {
-    if (mediaUrl.startsWith('http')) return mediaUrl;
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/posts/${mediaUrl}`;
+    const trimmedUrl = mediaUrl.trim();
+    if (trimmedUrl.startsWith('http')) return trimmedUrl;
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/posts/${trimmedUrl}`;
   };
 
   if (!user) return null;
@@ -138,6 +140,7 @@ const Profile = () => {
                 <img
                   src={getAvatarUrl(user.avatar_url) || ''}
                   alt={user.username}
+                  crossOrigin="anonymous"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -297,6 +300,7 @@ const Profile = () => {
                       <img
                         src={getMediaUrl(post.media[0].media_url)}
                         alt="Post"
+                        crossOrigin="anonymous"
                         className="w-full h-full object-cover"
                       />
                     )
@@ -347,6 +351,7 @@ const Profile = () => {
                 <img
                   src={getAvatarUrl(user.avatar_url) || ''}
                   alt={user.username}
+                  crossOrigin="anonymous"
                   className="w-full h-full object-cover"
                 />
               ) : (

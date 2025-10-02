@@ -156,10 +156,11 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
 
   const getAvatarUrl = (avatarUrl: string | null) => {
     if (!avatarUrl) return null;
-    if (avatarUrl.startsWith('http')) return avatarUrl;
+    const trimmedUrl = avatarUrl.trim();
+    if (trimmedUrl.startsWith('http')) return trimmedUrl;
     // Extract timestamp from filename (format: userid-timestamp.ext)
     // This provides natural cache busting as filename changes on each upload
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${avatarUrl}`;
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${trimmedUrl}`;
   };
 
   return (
