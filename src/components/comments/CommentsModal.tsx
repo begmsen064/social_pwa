@@ -8,9 +8,10 @@ interface CommentsModalProps {
   onClose: () => void;
   postId: string;
   onCommentAdded?: () => void;
+  isLocked?: boolean;
 }
 
-export const CommentsModal = ({ isOpen, onClose, postId, onCommentAdded }: CommentsModalProps) => {
+export const CommentsModal = ({ isOpen, onClose, postId, onCommentAdded, isLocked = false }: CommentsModalProps) => {
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { comments, loading, error, addComment } = useComments(postId);
@@ -126,33 +127,43 @@ export const CommentsModal = ({ isOpen, onClose, postId, onCommentAdded }: Comme
 
         {/* Input Form */}
         <div className="border-t border-gray-200 dark:border-gray-800 p-4">
-          <form onSubmit={handleSubmit} className="flex items-center gap-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Add a comment..."
-              maxLength={500}
-              disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={!commentText.trim() || isSubmitting}
-              className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isSubmitting ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-            </button>
-          </form>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-right">
-            {commentText.length}/500
-          </p>
+          {isLocked ? (
+            <div className="flex items-center justify-center py-3 px-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <p className="text-sm text-amber-700 dark:text-amber-400 text-center">
+                💎 Bu premium içeriğe yorum yapmak için önce satın almanız gerekiyor.
+              </p>
+            </div>
+          ) : (
+            <>
+              <form onSubmit={handleSubmit} className="flex items-center gap-2">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Add a comment..."
+                  maxLength={500}
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={!commentText.trim() || isSubmitting}
+                  className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSubmitting ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
+                </button>
+              </form>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-right">
+                {commentText.length}/500
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

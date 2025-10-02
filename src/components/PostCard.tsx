@@ -52,6 +52,11 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
 
   // Double tap to like/unlike (animation handled in MediaCarousel)
   const handleDoubleTap = () => {
+    // Don't allow like if content is locked
+    if (isLocked) {
+      alert('Bu premium içeriği beğenmek için önce satın almanız gerekiyor.');
+      return;
+    }
     toggleLike();
   };
 
@@ -261,10 +266,16 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
           <div className="flex items-center gap-1">
             {/* Like Button */}
             <button
-              onClick={toggleLike}
-              disabled={isLoading}
+              onClick={() => {
+                if (isLocked) {
+                  alert('Bu premium içeriği beğenmek için önce satın almanız gerekiyor.');
+                  return;
+                }
+                toggleLike();
+              }}
+              disabled={isLoading || isLocked}
               className={`flex items-center transition group ${
-                isLiked ? 'text-primary' : 'hover:text-primary'
+                isLiked ? 'text-primary' : isLocked ? 'text-gray-400 cursor-not-allowed' : 'hover:text-primary'
               } disabled:opacity-50`}
             >
               <svg
@@ -298,8 +309,18 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
 
           {/* Comment Button */}
           <button
-            onClick={() => setShowComments(true)}
-            className="flex items-center gap-2 hover:text-blue-500 transition group"
+            onClick={() => {
+              if (isLocked) {
+                alert('Bu premium içeriğe yorum yapmak için önce satın almanız gerekiyor. Ancak yorumları görüntüleyebilirsiniz.');
+                // Still allow viewing comments
+                setShowComments(true);
+                return;
+              }
+              setShowComments(true);
+            }}
+            className={`flex items-center gap-2 transition group ${
+              isLocked ? 'hover:text-gray-500' : 'hover:text-blue-500'
+            }`}
           >
             <svg
               className="w-6 h-6 group-hover:scale-110 transition-transform"
@@ -409,6 +430,7 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
         onClose={() => setShowComments(false)}
         postId={post.id}
         onCommentAdded={() => setCommentsCount((prev) => prev + 1)}
+        isLocked={isLocked}
       />
 
       {/* Delete Confirmation Modal */}
