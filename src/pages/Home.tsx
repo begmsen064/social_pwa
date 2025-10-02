@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -9,7 +9,7 @@ import PostCard from '../components/PostCard';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { user, refreshUser } = useAuthStore();
+  const { user } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,43 +24,6 @@ const Home = () => {
   const observerTarget = useRef<HTMLDivElement>(null);
   const isRefreshingRef = useRef(false);
 
-  // Manual refresh function
-  const handleRefresh = useCallback(async () => {
-    // Set flag to prevent double fetch
-    isRefreshingRef.current = true;
-    
-    // Scroll to top smoothly
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Reset state
-    setPage(1);
-    setHasMore(true);
-    setPosts([]);
-    
-    // Fetch fresh data
-    await fetchPosts(false, 1);
-    
-    if (user) {
-      // Refresh profile to get updated points
-      await refreshUser();
-      await fetchUnreadNotifications();
-      await fetchUnreadMessages();
-    }
-    
-    // Reset flag after a short delay to allow user state update
-    setTimeout(() => {
-      isRefreshingRef.current = false;
-    }, 100);
-  }, [user, refreshUser]); // Only recreate when user or refreshUser changes
-
-  // Listen for refresh event from BottomNav
-  useEffect(() => {
-    window.addEventListener('refreshHome', handleRefresh);
-    
-    return () => {
-      window.removeEventListener('refreshHome', handleRefresh);
-    };
-  }, [handleRefresh]); // Update listener when handleRefresh changes
 
   useEffect(() => {
     // Skip if currently refreshing to prevent double fetch

@@ -4,14 +4,6 @@ const BottomNav = () => {
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
-  
-  const handleHomeClick = (e: React.MouseEvent) => {
-    // If already on home page, refresh and scroll to top
-    if (location.pathname === '/home') {
-      e.preventDefault();
-      window.dispatchEvent(new Event('refreshHome'));
-    }
-  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 z-50">
@@ -20,7 +12,6 @@ const BottomNav = () => {
           {/* Home */}
           <Link
             to="/home"
-            onClick={handleHomeClick}
             className={`flex flex-col items-center justify-center w-16 h-16 transition-colors ${
               isActive('/home')
                 ? 'text-primary'
