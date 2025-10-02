@@ -295,10 +295,10 @@ const Home = () => {
   return (
     <div 
       ref={containerRef}
-      className="min-h-screen px-4 py-6 max-w-2xl mx-auto overflow-y-auto"
+      className="min-h-screen overflow-y-auto"
     >
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 mb-6 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-800">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
           Social PWA
         </h1>
@@ -344,7 +344,7 @@ const Home = () => {
       </div>
 
       {/* Welcome Card */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-4">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
           Hoş geldin
         </p>
@@ -363,7 +363,7 @@ const Home = () => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 px-4 py-4 bg-gray-50 dark:bg-gray-950">
         <button
           onClick={() => setFilter('all')}
           className={`flex-1 py-2.5 rounded-lg font-semibold transition ${
@@ -402,7 +402,7 @@ const Home = () => {
 
       {/* Posts Feed */}
       {!loading && !error && (
-        <div className="space-y-4">
+        <div>
           {posts.length > 0 ? (
             <>
               {posts.map((post) => (

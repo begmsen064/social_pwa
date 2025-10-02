@@ -93,7 +93,7 @@ const MediaCarousel = ({ media, onDoubleTap, isLiked }: MediaCarouselProps) => {
     <>
       <div 
         ref={containerRef}
-        className="relative w-full bg-black rounded-lg overflow-hidden"
+        className="relative w-full bg-black overflow-hidden"
         style={{ height: '500px' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}

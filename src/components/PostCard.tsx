@@ -162,7 +162,7 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden mb-4">
+    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <div 
