@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, TrendingUp, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../store/authStore';
 import { FollowButton } from '../components/FollowButton';
 import type { Post } from '../types';
 
@@ -16,6 +17,7 @@ interface Profile {
 
 const Explore = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'posts' | 'users'>('posts');
   const [searchQuery, setSearchQuery] = useState('');
   const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
@@ -61,10 +63,11 @@ const Explore = () => {
 
       setTrendingPosts(postsData || []);
 
-      // Fetch suggested users (users with most followers)
+      // Fetch suggested users (users with most followers, excluding current user)
       const { data: usersData } = await supabase
         .from('profiles')
         .select('*')
+        .neq('id', user?.id || '')
         .order('total_points', { ascending: false })
         .limit(10);
 
@@ -94,6 +97,7 @@ const Explore = () => {
       const { data } = await supabase
         .from('profiles')
         .select('*')
+        .neq('id', user?.id || '')
         .or(`username.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%`)
         .limit(20);
 
@@ -299,10 +303,6 @@ const Explore = () => {
                         {user.bio && (
                           <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{user.bio}</p>
                         )}
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold">{user.followers_count || 0}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">takipçi</div>
                       </div>
                     </div>
                     <FollowButton userId={user.id} compact />
