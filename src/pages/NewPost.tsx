@@ -220,28 +220,38 @@ const NewPost = () => {
       }, 30000); // Every 30 seconds
 
       try {
-        // 1. Add watermark to media files
-        setUploadStatus('Watermark ekleniyor...');
-        const watermarkedFiles: File[] = [];
+        // 1. Add watermark only to images (not videos)
+        const processedFiles: File[] = [];
         for (let i = 0; i < selectedFiles.length; i++) {
           const file = selectedFiles[i];
-          try {
-            const watermarkedFile = await addWatermarkToMedia(file, user.username);
-            watermarkedFiles.push(watermarkedFile);
-            setUploadProgress((i + 1) / selectedFiles.length * 20); // 0-20% for watermarking
-          } catch (error) {
-            console.error('Watermark error for file:', file.name, error);
-            // If watermark fails, use original file
-            watermarkedFiles.push(file);
+          const isImage = file.type.startsWith('image/');
+          
+          if (isImage) {
+            // Apply watermark to images
+            setUploadStatus('Resim watermark ekleniyor...');
+            try {
+              const watermarkedFile = await addWatermarkToMedia(file, user.username);
+              processedFiles.push(watermarkedFile);
+            } catch (error) {
+              console.error('Watermark error for file:', file.name, error);
+              // If watermark fails, use original file
+              processedFiles.push(file);
+            }
+          } else {
+            // Skip watermark for videos
+            processedFiles.push(file);
           }
+          
+          setUploadProgress((i + 1) / selectedFiles.length * 10); // 0-10% for processing
         }
 
         // 2. Upload media files
+        setUploadStatus('Yükleniyor...');
         const uploadedMedia = await uploadMultipleMedia(
-          watermarkedFiles,
+          processedFiles,
           user.id,
           (progress) => {
-            const adjustedProgress = 20 + (progress * 0.8); // 20-100%
+            const adjustedProgress = 10 + (progress * 0.9); // 10-100%
             setUploadProgress(adjustedProgress);
             if (progress < 50) {
               setUploadStatus(`Yükleniyor... ${Math.round(adjustedProgress)}%`);
