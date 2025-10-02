@@ -9,7 +9,7 @@ import PostCard from '../components/PostCard';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, refreshUser } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +22,40 @@ const Home = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Manual refresh function
+  const handleRefresh = async () => {
+    // Scroll to top smoothly
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Reset state
+    setPage(1);
+    setHasMore(true);
+    setPosts([]);
+    
+    // Fetch fresh data
+    await fetchPosts(false, 1);
+    
+    if (user) {
+      // Refresh profile to get updated points
+      await refreshUser();
+      await fetchUnreadNotifications();
+      await fetchUnreadMessages();
+    }
+  };
+
+  // Listen for refresh event from BottomNav
+  useEffect(() => {
+    const handleHomeRefreshEvent = () => {
+      handleRefresh();
+    };
+    
+    window.addEventListener('refreshHome', handleHomeRefreshEvent);
+    
+    return () => {
+      window.removeEventListener('refreshHome', handleHomeRefreshEvent);
+    };
+  }, [user]);
 
   useEffect(() => {
     // Reset pagination when filter changes
