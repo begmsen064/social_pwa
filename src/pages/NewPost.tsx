@@ -21,10 +21,110 @@ const NewPost = () => {
   const [filteredCities, setFilteredCities] = useState<string[]>([]);
   const locationInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const [showHashtagSuggestions, setShowHashtagSuggestions] = useState(false);
+  const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([]);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const captionInputRef = useRef<HTMLTextAreaElement>(null);
+  const hashtagSuggestionsRef = useRef<HTMLDivElement>(null);
 
   const handleMediaChange = (files: File[]) => {
     setSelectedFiles(files);
     setError('');
+  };
+
+  // Fetch popular hashtags from database
+  const fetchPopularHashtags = async (search: string) => {
+    try {
+      // Get all posts with captions
+      const { data: posts } = await supabase
+        .from('posts')
+        .select('caption')
+        .not('caption', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(500); // Get recent posts
+
+      if (!posts) return [];
+
+      // Extract all hashtags
+      const hashtagCount: { [key: string]: number } = {};
+      posts.forEach(post => {
+        if (post.caption) {
+          const hashtags = post.caption.match(/#[\wşŞıİğĞüÜöÖçÇ]+/g);
+          if (hashtags) {
+            hashtags.forEach((tag: string) => {
+              const cleanTag = tag.substring(1).toLowerCase();
+              hashtagCount[cleanTag] = (hashtagCount[cleanTag] || 0) + 1;
+            });
+          }
+        }
+      });
+
+      // Sort by frequency
+      const sortedHashtags = Object.entries(hashtagCount)
+        .sort((a, b) => b[1] - a[1])
+        .map(([tag]) => tag);
+
+      // Filter by search term
+      if (search) {
+        return sortedHashtags.filter(tag => 
+          tag.toLowerCase().includes(search.toLowerCase())
+        ).slice(0, 10);
+      }
+
+      return sortedHashtags.slice(0, 10);
+    } catch (error) {
+      console.error('Error fetching hashtags:', error);
+      return [];
+    }
+  };
+
+  // Handle caption change with hashtag detection
+  const handleCaptionChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    setCaption(value);
+    setCursorPosition(cursorPos);
+
+    // Find if cursor is after a # symbol
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const hashtagMatch = textBeforeCursor.match(/#([\wşŞıİğĞüÜöÖçÇ]*)$/);
+
+    if (hashtagMatch) {
+      const searchTerm = hashtagMatch[1];
+      const suggestions = await fetchPopularHashtags(searchTerm);
+      setHashtagSuggestions(suggestions);
+      setShowHashtagSuggestions(suggestions.length > 0);
+    } else {
+      setShowHashtagSuggestions(false);
+    }
+  };
+
+  // Insert hashtag at cursor position
+  const insertHashtag = (tag: string) => {
+    const textBeforeCursor = caption.substring(0, cursorPosition);
+    const textAfterCursor = caption.substring(cursorPosition);
+    
+    // Find the # symbol position
+    const hashtagMatch = textBeforeCursor.match(/#([\wşŞıİğĞüÜöÖçÇ]*)$/);
+    if (hashtagMatch) {
+      const hashtagStartPos = textBeforeCursor.lastIndexOf('#');
+      const newText = 
+        caption.substring(0, hashtagStartPos) + 
+        `#${tag} ` + 
+        textAfterCursor;
+      
+      setCaption(newText);
+      setShowHashtagSuggestions(false);
+      
+      // Set cursor position after the inserted hashtag
+      setTimeout(() => {
+        if (captionInputRef.current) {
+          const newCursorPos = hashtagStartPos + tag.length + 2; // +2 for # and space
+          captionInputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+          captionInputRef.current.focus();
+        }
+      }, 0);
+    }
   };
 
   // Normalize Turkish characters for search
@@ -80,6 +180,15 @@ const NewPost = () => {
         !locationInputRef.current.contains(event.target as Node)
       ) {
         setShowCitySuggestions(false);
+      }
+      
+      if (
+        hashtagSuggestionsRef.current &&
+        !hashtagSuggestionsRef.current.contains(event.target as Node) &&
+        captionInputRef.current &&
+        !captionInputRef.current.contains(event.target as Node)
+      ) {
+        setShowHashtagSuggestions(false);
       }
     };
 
@@ -281,23 +390,57 @@ const NewPost = () => {
       </div>
 
       {/* Caption Input */}
-      <div className="mb-4">
+      <div className="mb-4 relative">
         <label htmlFor="caption" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Açıklama
+          <span className="ml-2 text-xs text-primary font-normal">(# ekleyerek hashtag önerileri al)</span>
         </label>
         <textarea
+          ref={captionInputRef}
           id="caption"
           value={caption}
-          onChange={(e) => setCaption(e.target.value)}
+          onChange={handleCaptionChange}
           placeholder="Bir şeyler yaz... #hashtag ekleyebilirsin"
           maxLength={2200}
           rows={4}
           disabled={loading}
           className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition resize-none disabled:opacity-50"
         />
-        <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">
-          {caption.length} / 2200 karakter
+        <div className="mt-1 flex items-center justify-between text-xs">
+          <div className="flex flex-wrap gap-1">
+            {caption.match(/#[\wşŞıİğĞüÜöÖçÇ]+/g)?.map((tag, index) => (
+              <span 
+                key={index} 
+                className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+          <span className="text-gray-500 dark:text-gray-400">
+            {caption.length} / 2200
+          </span>
         </div>
+        
+        {/* Hashtag Suggestions */}
+        {showHashtagSuggestions && hashtagSuggestions.length > 0 && (
+          <div
+            ref={hashtagSuggestionsRef}
+            className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+          >
+            {hashtagSuggestions.map((tag, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => insertHashtag(tag)}
+                className="w-full text-left px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors flex items-center"
+              >
+                <span className="text-primary font-semibold mr-2">#</span>
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Location Input */}
