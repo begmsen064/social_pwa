@@ -18,6 +18,7 @@ const MediaCarousel = ({ media, onDoubleTap, isLiked }: MediaCarouselProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const lastTapRef = useRef(0);
   const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isSwipingRef = useRef(false);
 
   if (!media || media.length === 0) return null;
 
@@ -159,39 +160,53 @@ const MediaCarousel = ({ media, onDoubleTap, isLiked }: MediaCarouselProps) => {
               {media.length > 1 && (
                 <>
                   <div 
-                    className="absolute left-0 top-0 bottom-0 w-16 z-20"
+                    className="absolute left-0 top-0 bottom-0 w-20 z-[15]"
                     style={{ pointerEvents: 'auto' }}
                     onTouchStart={(e) => {
+                      if (isSwipingRef.current) return;
+                      isSwipingRef.current = true;
                       touchStartXRef.current = e.touches[0].clientX;
                       touchEndXRef.current = e.touches[0].clientX;
                     }}
                     onTouchMove={(e) => {
+                      if (!isSwipingRef.current) return;
                       touchEndXRef.current = e.touches[0].clientX;
                     }}
                     onTouchEnd={() => {
+                      if (!isSwipingRef.current) return;
                       const swipeDistance = touchStartXRef.current - touchEndXRef.current;
                       if (swipeDistance < -50) {
                         // Swiped right -> previous
                         setCurrentIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1));
                       }
+                      isSwipingRef.current = false;
+                      touchStartXRef.current = 0;
+                      touchEndXRef.current = 0;
                     }}
                   />
                   <div 
-                    className="absolute right-0 top-0 bottom-0 w-16 z-20"
+                    className="absolute right-0 top-0 bottom-0 w-20 z-[15]"
                     style={{ pointerEvents: 'auto' }}
                     onTouchStart={(e) => {
+                      if (isSwipingRef.current) return;
+                      isSwipingRef.current = true;
                       touchStartXRef.current = e.touches[0].clientX;
                       touchEndXRef.current = e.touches[0].clientX;
                     }}
                     onTouchMove={(e) => {
+                      if (!isSwipingRef.current) return;
                       touchEndXRef.current = e.touches[0].clientX;
                     }}
                     onTouchEnd={() => {
+                      if (!isSwipingRef.current) return;
                       const swipeDistance = touchStartXRef.current - touchEndXRef.current;
                       if (swipeDistance > 50) {
                         // Swiped left -> next
                         setCurrentIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1));
                       }
+                      isSwipingRef.current = false;
+                      touchStartXRef.current = 0;
+                      touchEndXRef.current = 0;
                     }}
                   />
                 </>

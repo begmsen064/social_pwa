@@ -423,7 +423,7 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
 
       {/* Controls Overlay */}
       <div
-        className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${
+        className={`absolute inset-0 pointer-events-none transition-opacity duration-300 z-20 ${
           showControls ? 'opacity-100' : 'opacity-0'
         }`}
       >
@@ -434,11 +434,11 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/50 to-transparent" />
 
         {/* Top Right Controls */}
-        <div className="absolute top-4 right-4 flex items-center gap-2">
+        <div className="absolute top-4 right-4 flex items-center gap-2 z-30">
           {/* Mute/Unmute Button */}
           <button
             onClick={toggleMute}
-            className="p-2 bg-black/60 rounded-full hover:bg-black/80 transition pointer-events-auto"
+            className="p-2 bg-black/60 rounded-full hover:bg-black/80 transition pointer-events-auto z-30"
           >
             {isMuted ? (
               <VolumeX className="w-5 h-5 text-white" />
@@ -450,7 +450,7 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
           {/* Fullscreen Button */}
           <button
             onClick={toggleFullscreen}
-            className="p-2 bg-black/60 rounded-full hover:bg-black/80 transition pointer-events-auto"
+            className="p-2 bg-black/60 rounded-full hover:bg-black/80 transition pointer-events-auto z-30"
           >
             {isFullscreen ? (
               <Minimize className="w-5 h-5 text-white" />
