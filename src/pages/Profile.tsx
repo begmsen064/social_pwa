@@ -4,6 +4,7 @@ import { Settings, LogOut } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { supabase } from '../lib/supabase';
 import type { Post } from '../types';
+import { getLevelInfo, getProgress, getPointsToNextLevel } from '../utils/levelSystem';
 
 interface UserStats {
   postsCount: number;
@@ -173,6 +174,58 @@ const Profile = () => {
             <div className="bg-gradient-to-br from-primary/10 to-secondary/10 dark:from-primary/20 dark:to-secondary/20 rounded-lg p-3 text-center">
               <div className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">{user.total_points}</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Points</div>
+            </div>
+          </div>
+
+          {/* Level Progress Bar */}
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{getLevelInfo(user.total_points).badge}</span>
+                <div>
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">
+                    {getLevelInfo(user.total_points).name}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Level {getLevelInfo(user.total_points).level}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {getPointsToNextLevel(user.total_points) > 0 ? (
+                    <>
+                      <span className="font-semibold text-primary">{getPointsToNextLevel(user.total_points)}</span> puan kaldı
+                    </>
+                  ) : (
+                    <span className="font-semibold text-green-500">Max Level! ✨</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="relative w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500 ease-out"
+                style={{ 
+                  width: `${getProgress(user.total_points)}%`,
+                }}
+              >
+                <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-center mt-1.5">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {getLevelInfo(user.total_points).minPoints}
+              </span>
+              <span className="text-xs font-semibold text-primary">
+                {Math.round(getProgress(user.total_points))}%
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {getLevelInfo(user.total_points).maxPoints === Infinity ? '∞' : getLevelInfo(user.total_points).maxPoints}
+              </span>
             </div>
           </div>
 
