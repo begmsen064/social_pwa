@@ -461,15 +461,18 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
         </div>
       </div>
 
-      {/* Progress Bar - Always Visible */}
+      {/* Progress Bar - Always Visible with larger hit area */}
       <div
-        className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 cursor-pointer pointer-events-auto z-10"
+        className="absolute bottom-0 left-0 right-0 h-8 cursor-pointer pointer-events-auto z-10 flex items-end"
         onClick={handleProgressClick}
       >
-        <div
-          className="h-full bg-white transition-all duration-100"
-          style={{ width: `${progress}%` }}
-        />
+        {/* Visual progress bar */}
+        <div className="w-full h-1 bg-white/30">
+          <div
+            className="h-full bg-white transition-all duration-100"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       </div>
     </div>
   );
