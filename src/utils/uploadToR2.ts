@@ -8,6 +8,13 @@ export async function uploadToR2(
   folder: 'avatars' | 'posts' | 'videos' = 'posts'
 ): Promise<{ url: string; fileName: string } | null> {
   try {
+    // Check file size (max ~4MB for base64 upload due to Edge Function limits)
+    const maxSizeBytes = 4 * 1024 * 1024; // 4MB
+    if (file.size > maxSizeBytes) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      throw new Error(`Dosya çok büyük (${sizeMB}MB). Maksimum 4MB olmalı.`);
+    }
+
     // Convert file to base64
     const base64 = await fileToBase64(file);
 
@@ -23,11 +30,17 @@ export async function uploadToR2(
 
     if (error) {
       console.error('R2 upload error:', error);
-      throw error;
+      // Provide better error message
+      if (error.message?.includes('fetch')) {
+        throw new Error('Ağ hatası. İnternet bağlantınızı kontrol edin.');
+      } else if (error.message?.includes('timeout')) {
+        throw new Error('Yükleme zaman aşımına uğradı. Tekrar deneyin.');
+      }
+      throw new Error('R2 yükleme hatası: ' + error.message);
     }
 
     if (!data.success) {
-      throw new Error(data.error || 'Upload failed');
+      throw new Error(data.error || 'Yükleme başarısız oldu');
     }
 
     return {
