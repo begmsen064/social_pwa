@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Eye, EyeOff, Mail, Lock, User, UserCheck, CheckCircle, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, UserCheck, CheckCircle, AlertCircle } from 'lucide-react';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -10,7 +10,6 @@ const Register = () => {
     email: '',
     password: '',
     username: '',
-    fullName: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -112,7 +111,7 @@ const Register = () => {
       formData.email,
       formData.password,
       formData.username,
-      formData.fullName
+      formData.username // Use username as full_name too
     );
 
     if (error) {
@@ -147,27 +146,6 @@ const Register = () => {
                 {error}
               </div>
             )}
-
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Ad Soyad
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  required
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-600"
-                  placeholder="Ahmet Yılmaz"
-                />
-              </div>
-            </div>
 
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
