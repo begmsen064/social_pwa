@@ -21,6 +21,7 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(0);
   const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -43,9 +44,26 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
-    const handleLoadedData = () => setIsLoading(false);
+    const handleLoadedData = () => {
+      setIsLoading(false);
+      setLoadProgress(100);
+    };
     const handleWaiting = () => setIsLoading(true);
-    const handleCanPlay = () => setIsLoading(false);
+    const handleCanPlay = () => {
+      setIsLoading(false);
+      setLoadProgress(100);
+    };
+    const handleProgress = () => {
+      // Calculate buffered percentage
+      if (video.buffered.length > 0) {
+        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+        const duration = video.duration;
+        if (duration > 0) {
+          const percent = (bufferedEnd / duration) * 100;
+          setLoadProgress(Math.min(percent, 100));
+        }
+      }
+    };
     const handleError = (e: Event) => {
       console.error('Video error:', e);
       // Don't show error immediately, might be temporary or network issue
@@ -78,6 +96,7 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
     video.addEventListener('loadeddata', handleLoadedData);
     video.addEventListener('waiting', handleWaiting);
     video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('progress', handleProgress);
     video.addEventListener('error', handleError);
 
     return () => {
@@ -88,6 +107,7 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
       video.removeEventListener('loadeddata', handleLoadedData);
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('progress', handleProgress);
       video.removeEventListener('error', handleError);
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
@@ -357,11 +377,19 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
         </div>
       )}
 
-      {/* Loading Spinner */}
+      {/* Loading Spinner and Progress */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/20">
-          <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-        </div>
+        <>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/20">
+            <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+          {/* Loading Progress Percentage */}
+          <div className="absolute top-4 left-4 pointer-events-none">
+            <div className="bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg">
+              <span className="text-white text-sm font-medium">%{Math.round(loadProgress)}</span>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Error State */}
