@@ -6,6 +6,7 @@ import { useThemeStore } from './store/themeStore';
 // Components (Keep these eager loaded - small and critical)
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 
 // Auth Pages (Keep eager for fast initial load)
 import Login from './pages/Login';
@@ -62,6 +63,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Auth Routes */}
