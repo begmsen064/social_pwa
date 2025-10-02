@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { Eye, EyeOff, Mail, Lock, CheckCircle } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -9,6 +10,9 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +25,10 @@ const Login = () => {
       setError(error.message || 'Giriş yapılamadı');
       setLoading(false);
     } else {
-      navigate('/home');
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/home');
+      }, 500);
     }
   };
 
@@ -51,38 +58,84 @@ const Login = () => {
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 E-posta
               </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition"
-                placeholder="ornek@email.com"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-600"
+                  placeholder="ornek@email.com"
+                />
+              </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Şifre
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Şifre
+                </label>
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:text-primary-dark transition"
+                  onClick={() => alert('Şifre sıfırlama özelliği yakında eklenecek!')}
+                >
+                  Şifremi Unuttum?
+                </button>
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-12 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-600"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember Me */}
+            <div className="flex items-center">
               <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition"
-                placeholder="••••••••"
+                id="remember-me"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded cursor-pointer"
               />
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                Beni hatırla
+              </label>
             </div>
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-primary to-secondary text-white py-3 px-4 rounded-lg font-semibold hover:shadow-lg transform hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading || success}
+              className="w-full bg-gradient-to-r from-primary to-secondary text-white py-3 px-4 rounded-lg font-semibold hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
             >
-              {loading ? (
+              <span className="absolute inset-0 w-full h-full bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
+              {success ? (
+                <span className="flex items-center justify-center">
+                  <CheckCircle className="mr-2 h-5 w-5" />
+                  Başarılı!
+                </span>
+              ) : loading ? (
                 <span className="flex items-center justify-center">
                   <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -91,7 +144,7 @@ const Login = () => {
                   Giriş yapılıyor...
                 </span>
               ) : (
-                'Giriş Yap'
+                <span className="relative">Giriş Yap</span>
               )}
             </button>
           </form>
