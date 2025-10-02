@@ -9,7 +9,6 @@ const EditProfile = () => {
   const { user, setUser } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [fullName, setFullName] = useState(user?.full_name || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -86,7 +85,6 @@ const EditProfile = () => {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          full_name: fullName.trim(),
           bio: bio.trim() || undefined,
           avatar_url: avatarUrl,
           updated_at: new Date().toISOString(),
@@ -98,7 +96,6 @@ const EditProfile = () => {
       // Update local user state
       setUser({
         ...user,
-        full_name: fullName.trim(),
         bio: bio.trim() || undefined,
         avatar_url: avatarUrl,
       });
@@ -131,7 +128,7 @@ const EditProfile = () => {
           <h1 className="text-lg font-semibold">Edit Profile</h1>
           <button
             onClick={handleSave}
-            disabled={isSaving || !fullName.trim()}
+            disabled={isSaving}
             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? 'Saving...' : 'Save'}
@@ -198,24 +195,6 @@ const EditProfile = () => {
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Full Name */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-6 mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Full Name
-          </label>
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            maxLength={50}
-            placeholder="Your full name"
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
-            {fullName.length}/50
-          </p>
         </div>
 
         {/* Username (Read-only) */}
