@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, LogOut } from 'lucide-react';
+import { Settings, LogOut, Shield } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { supabase } from '../lib/supabase';
 import type { Post } from '../types';
@@ -290,10 +290,21 @@ const Profile = () => {
           {/* Edit Profile Button */}
           <button
             onClick={() => navigate('/profile/edit')}
-            className="w-full py-2.5 mb-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg font-semibold transition"
+            className="w-full py-2.5 mb-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg font-semibold transition"
           >
             Edit Profile
           </button>
+
+          {/* Admin Panel Button (Only for admins) */}
+          {user.role === 'admin' && (
+            <button
+              onClick={() => navigate('/admin')}
+              className="w-full py-2.5 mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg font-semibold transition flex items-center justify-center gap-2"
+            >
+              <Shield className="w-5 h-5" />
+              Admin Panel
+            </button>
+          )}
         </div>
       </div>
 

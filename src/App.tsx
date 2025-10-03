@@ -7,6 +7,7 @@ import { supabase } from './lib/supabase';
 // Components (Keep these eager loaded - small and critical)
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import ScrollToTop from './components/ScrollToTop';
 
 // Auth Pages (Keep eager for fast initial load)
@@ -26,6 +27,11 @@ const Messages = lazy(() => import('./pages/Messages'));
 const Chat = lazy(() => import('./pages/Chat'));
 const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 const HashtagFeed = lazy(() => import('./pages/HashtagFeed'));
+
+// Admin Pages
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminPosts = lazy(() => import('./pages/admin/AdminPosts'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -156,6 +162,38 @@ function App() {
             element={
               <ProtectedRoute>
                 <Chat />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Routes */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute>
+                <AdminRoute>
+                  <AdminUsers />
+                </AdminRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/posts"
+            element={
+              <ProtectedRoute>
+                <AdminRoute>
+                  <AdminPosts />
+                </AdminRoute>
               </ProtectedRoute>
             }
           />

@@ -6,6 +6,10 @@ export interface User {
   avatar_url?: string;
   total_points: number;
   level: string;
+  role?: 'user' | 'admin';
+  is_banned?: boolean;
+  ban_reason?: string;
+  banned_at?: string;
   created_at: string;
   updated_at: string;
 }
