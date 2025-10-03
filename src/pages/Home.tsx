@@ -136,7 +136,7 @@ const Home = () => {
           media:post_media(*)
         `);
 
-      // If filter is 'following', only show posts from users we follow (excluding own posts)
+      // If filter is 'following', only show posts from users we follow
       if (filter === 'following') {
         // Get list of users I follow
         const { data: followingData } = await supabase
@@ -149,8 +149,10 @@ const Home = () => {
         if (followingIds.length > 0) {
           query = query.in('user_id', followingIds);
         } else {
-          // If not following anyone, show empty state (no posts)
-          query = query.eq('user_id', 'no-user-match');
+          // If not following anyone, return empty array without querying
+          setPosts([]);
+          setHasMore(false);
+          return;
         }
       }
 
@@ -231,7 +233,9 @@ const Home = () => {
         if (followingIds.length > 0) {
           query = query.in('user_id', followingIds);
         } else {
-          query = query.eq('user_id', 'no-user-match');
+          // If not following anyone, don't load more
+          setHasMore(false);
+          return;
         }
       }
 
