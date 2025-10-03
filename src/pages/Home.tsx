@@ -74,6 +74,24 @@ const Home = () => {
     };
   }, [user, navigate]);
 
+  // Listen for app-resumed event (when returning from background)
+  useEffect(() => {
+    const handleAppResumed = () => {
+      console.log('Home: App resumed, refreshing data');
+      fetchPosts(true, 1);
+      if (user) {
+        fetchUnreadNotifications();
+        fetchUnreadMessages();
+      }
+    };
+
+    window.addEventListener('app-resumed', handleAppResumed);
+    
+    return () => {
+      window.removeEventListener('app-resumed', handleAppResumed);
+    };
+  }, [user]);
+
   // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(

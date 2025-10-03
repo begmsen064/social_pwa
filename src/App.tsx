@@ -53,6 +53,28 @@ function App() {
     }
   }, [theme]);
 
+  // Handle visibility change (when app returns from background)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // App returned to foreground
+        console.log('App resumed - refreshing connection');
+        
+        // Force re-initialize to refresh Supabase connection
+        initialize();
+        
+        // Trigger a custom event that pages can listen to
+        window.dispatchEvent(new CustomEvent('app-resumed'));
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [initialize]);
+
   if (!initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
