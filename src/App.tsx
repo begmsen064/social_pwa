@@ -2,7 +2,6 @@ import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useThemeStore } from './store/themeStore';
-import { reconnectSupabase } from './lib/supabase';
 
 // Components (Keep these eager loaded - small and critical)
 import Layout from './components/Layout';
@@ -54,73 +53,6 @@ function App() {
     }
   }, [theme]);
 
-  // Handle app resume from background (multiple events for reliability)
-  useEffect(() => {
-    let lastResumeTime = Date.now();
-    let isReconnecting = false;
-    
-    const handleResume = async (eventName: string) => {
-      // Prevent multiple rapid calls
-      const now = Date.now();
-      if (now - lastResumeTime < 2000 || isReconnecting) {
-        console.log(`Skipping resume (${eventName}) - too soon or already reconnecting`);
-        return;
-      }
-      
-      lastResumeTime = now;
-      isReconnecting = true;
-      
-      console.log(`App resumed via ${eventName} - attempting reconnect`);
-      
-      try {
-        // Try to reconnect Supabase
-        const reconnected = await reconnectSupabase();
-        
-        if (!reconnected) {
-          console.log('Reconnect failed - reloading page');
-          window.location.reload();
-          return;
-        }
-        
-        // Try to re-initialize auth
-        await initialize();
-        console.log('Reconnect successful');
-        
-        // Trigger a custom event that pages can listen to
-        window.dispatchEvent(new CustomEvent('app-resumed'));
-      } catch (error) {
-        console.error('Resume failed - reloading page', error);
-        window.location.reload();
-      } finally {
-        isReconnecting = false;
-      }
-    };
-
-    // Multiple event listeners for better coverage
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        handleResume('visibilitychange');
-      }
-    };
-    
-    const handleFocus = () => handleResume('focus');
-    const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) {
-        // Page was restored from bfcache
-        handleResume('pageshow-bfcache');
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('pageshow', handlePageShow);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('pageshow', handlePageShow);
-    };
-  }, [initialize]);
 
   if (!initialized) {
     return (
