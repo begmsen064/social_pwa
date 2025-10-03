@@ -77,8 +77,9 @@ const AdminPosts = () => {
   };
 
   const getMediaUrl = (mediaUrl: string) => {
-    if (mediaUrl.startsWith('http')) return mediaUrl;
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/posts/${mediaUrl}`;
+    const trimmedUrl = mediaUrl.trim();
+    if (trimmedUrl.startsWith('http')) return trimmedUrl;
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/posts/${trimmedUrl}`;
   };
 
   const filteredPosts = posts.filter((post) =>
@@ -124,79 +125,131 @@ const AdminPosts = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             {filteredPosts.length > 0 ? (
-              filteredPosts.map((post) => (
-                <div
-                  key={post.id}
-                  className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden"
-                >
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      {/* Post Info */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-semibold text-gray-900 dark:text-white">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                        Thumbnail
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                        Kullanıcı
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                        İçerik
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                        İstatistik
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                        Tarih
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                        İşlem
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                    {filteredPosts.map((post) => (
+                      <tr key={post.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+                        {/* Thumbnail */}
+                        <td className="px-4 py-3">
+                          {post.media && post.media[0] ? (
+                            <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                              {post.media[0].media_type === 'video' ? (
+                                <div className="relative w-full h-full">
+                                  <video
+                                    src={getMediaUrl(post.media[0].media_url)}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                                    </svg>
+                                  </div>
+                                </div>
+                              ) : (
+                                <img
+                                  src={getMediaUrl(post.media[0].media_url)}
+                                  alt="Post"
+                                  crossOrigin="anonymous"
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+                            </div>
+                          ) : (
+                            <div className="w-16 h-16 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                              <span className="text-gray-400 text-xs">No media</span>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* User */}
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-gray-900 dark:text-white">
                             @{post.user?.username}
-                          </span>
+                          </div>
                           {post.price > 0 && (
-                            <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 text-xs font-medium rounded">
-                              Premium {post.price}p
+                            <span className="inline-block mt-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 text-xs font-medium rounded">
+                              💎 {post.price}p
                             </span>
                           )}
-                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                        </td>
+
+                        {/* Content */}
+                        <td className="px-4 py-3 max-w-xs">
+                          {post.caption ? (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                              {post.caption}
+                            </p>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">Açıklama yok</span>
+                          )}
+                        </td>
+
+                        {/* Stats */}
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-1 text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">❤️ {post.likes_count}</span>
+                            <span className="text-gray-600 dark:text-gray-400">💬 {post.comments_count}</span>
+                          </div>
+                        </td>
+
+                        {/* Date */}
+                        <td className="px-4 py-3">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: tr })}
                           </span>
-                        </div>
+                        </td>
 
-                        {post.caption && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
-                            {post.caption}
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                          <span>❤️ {post.likes_count}</span>
-                          <span>💬 {post.comments_count}</span>
-                        </div>
-                      </div>
-
-                      {/* Thumbnail */}
-                      {post.media && post.media[0] && (
-                        <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-800">
-                          {post.media[0].media_type === 'video' ? (
-                            <video
-                              src={getMediaUrl(post.media[0].media_url)}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <img
-                              src={getMediaUrl(post.media[0].media_url)}
-                              alt="Post"
-                              crossOrigin="anonymous"
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                        </div>
-                      )}
-
-                      {/* Delete Button */}
-                      <button
-                        onClick={() => handleDeletePost(post.id)}
-                        disabled={deleting === post.id}
-                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition disabled:opacity-50"
-                        title="Postu sil"
-                      >
-                        {deleting === post.id ? (
-                          <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
+                        {/* Actions */}
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => handleDeletePost(post.id)}
+                            disabled={deleting === post.id}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium transition disabled:opacity-50"
+                            title="Postu sil"
+                          >
+                            {deleting === post.id ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                                Siliniyor...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4" />
+                                Sil
+                              </>
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <div className="text-center py-12">
                 <p className="text-gray-500 dark:text-gray-400">Post bulunamadı</p>

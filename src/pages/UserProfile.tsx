@@ -14,6 +14,8 @@ interface UserProfile {
   avatar_url: string | null;
   bio: string | null;
   total_points: number;
+  is_banned?: boolean;
+  ban_reason?: string;
   created_at: string;
 }
 
@@ -222,7 +224,14 @@ const UserProfile = () => {
 
         {/* Name & Bio */}
         <div className="mb-4">
-          <h2 className="font-semibold text-gray-900 dark:text-white">{profile.full_name}</h2>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="font-semibold text-gray-900 dark:text-white">{profile.full_name}</h2>
+            {profile.is_banned && (
+              <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-medium rounded">
+                BANLI
+              </span>
+            )}
+          </div>
           {profile.bio && (
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{profile.bio}</p>
           )}

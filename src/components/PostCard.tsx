@@ -192,9 +192,16 @@ const PostCard = memo(({ post, onPostDeleted, onPostUpdated }: PostCardProps) =>
           )}
 
           <div>
-            <p className="font-semibold text-gray-900 dark:text-gray-100 hover:underline">
-              {post.user?.full_name || 'Unknown User'}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-gray-900 dark:text-gray-100 hover:underline">
+                {post.user?.full_name || 'Unknown User'}
+              </p>
+              {post.user?.is_banned && (
+                <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-medium rounded">
+                  BANLI
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 hover:underline">
               @{post.user?.username} • {timeAgo}
             </p>

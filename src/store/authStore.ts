@@ -37,6 +37,18 @@ export const useAuthStore = create<AuthState>((set) => ({
           .eq('id', session.user.id)
           .single();
         
+        // Check if user is banned
+        if (profile?.is_banned) {
+          await supabase.auth.signOut();
+          set({ 
+            session: null, 
+            user: null, 
+            loading: false,
+            initialized: true 
+          });
+          return;
+        }
+        
         set({ 
           session, 
           user: profile, 
@@ -72,6 +84,16 @@ export const useAuthStore = create<AuthState>((set) => ({
           .select('*')
           .eq('id', data.user.id)
           .single();
+
+        // Check if user is banned
+        if (profile?.is_banned) {
+          await supabase.auth.signOut();
+          return { 
+            error: { 
+              message: `Hesabınız yasaklanmıştır. Neden: ${profile.ban_reason || 'Belirtilmedi'}` 
+            } 
+          };
+        }
 
         set({ user: profile, session: data.session });
       }
