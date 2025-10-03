@@ -17,6 +17,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<UserStats>({ postsCount: 0, followersCount: 0, followingCount: 0 });
   const [posts, setPosts] = useState<Post[]>([]);
+  const [likedPosts, setLikedPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'posts' | 'liked'>('posts');
   const [showAvatarModal, setShowAvatarModal] = useState(false);
@@ -26,6 +27,12 @@ const Profile = () => {
       fetchUserData();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user && activeTab === 'liked') {
+      fetchLikedPosts();
+    }
+  }, [user, activeTab]);
 
   const fetchUserData = async () => {
     if (!user) return;
@@ -71,6 +78,54 @@ const Profile = () => {
       setPosts(postsData || []);
     } catch (error) {
       console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchLikedPosts = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+
+      // Get post IDs that user has liked
+      const { data: likesData, error: likesError } = await supabase
+        .from('likes')
+        .select('post_id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (likesError) throw likesError;
+
+      const likedPostIds = likesData?.map(like => like.post_id) || [];
+
+      if (likedPostIds.length === 0) {
+        setLikedPosts([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch the actual posts with media
+      const { data: postsData, error: postsError } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          user:profiles(*),
+          media:post_media(*)
+        `)
+        .in('id', likedPostIds);
+
+      if (postsError) throw postsError;
+
+      // Sort posts by the order of likes (most recently liked first)
+      const sortedPosts = likedPostIds
+        .map(id => postsData?.find(post => post.id === id))
+        .filter(post => post !== undefined) as Post[];
+
+      setLikedPosts(sortedPosts);
+    } catch (error) {
+      console.error('Error fetching liked posts:', error);
     } finally {
       setLoading(false);
     }
@@ -321,9 +376,37 @@ const Profile = () => {
             )}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">❤️</div>
-            <p className="text-gray-500 dark:text-gray-400">Beğenilen postlar burada görünecek</p>
+          <div className="grid grid-cols-3 gap-1">
+            {likedPosts.length > 0 ? (
+              likedPosts.map((post) => (
+                <div
+                  key={post.id}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                  className="aspect-square bg-gray-200 dark:bg-gray-800 cursor-pointer hover:opacity-75 transition"
+                >
+                  {post.media && post.media[0] && (
+                    post.media[0].media_type === 'video' ? (
+                      <video
+                        src={getMediaUrl(post.media[0].media_url)}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={getMediaUrl(post.media[0].media_url)}
+                        alt="Post"
+                        crossOrigin="anonymous"
+                        className="w-full h-full object-cover"
+                      />
+                    )
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-12">
+                <div className="text-6xl mb-4">❤️</div>
+                <p className="text-gray-500 dark:text-gray-400">Henüz beğendiğin post yok</p>
+              </div>
+            )}
           </div>
         )}
       </div>

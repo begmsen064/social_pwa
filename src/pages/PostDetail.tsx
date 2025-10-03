@@ -84,7 +84,7 @@ const PostDetail = () => {
       </div>
 
       {/* Post Content */}
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto">
         <PostCard
           post={post}
           onPostDeleted={() => navigate('/home')}
