@@ -151,6 +151,7 @@ const MediaCarousel = ({ media, onDoubleTap, isLiked }: MediaCarouselProps) => {
           ) : (
             <div className="relative w-full h-full">
               <VideoPlayer
+                key={currentMedia.media_url}
                 src={currentMedia.media_url}
                 className="w-full h-full"
                 autoPlay={false}

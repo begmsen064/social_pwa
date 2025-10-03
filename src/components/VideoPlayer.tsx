@@ -135,7 +135,7 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
     };
   }, []);
 
-  // Auto-pause video when scrolled out of view
+  // Auto-pause video when scrolled out of view (but don't auto-play)
   useEffect(() => {
     const container = containerRef.current;
     const video = videoRef.current;
@@ -144,12 +144,13 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          // If video is less than 50% visible and playing, pause it
+          // Only pause when out of view - don't auto-play
           if (!entry.isIntersecting || entry.intersectionRatio < 0.5) {
             if (!video.paused) {
               video.pause();
             }
           }
+          // User must manually play each video
         });
       },
       {
@@ -162,7 +163,7 @@ export const VideoPlayer = ({ src, className = '', autoPlay = false, onDoubleTap
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [isPlaying]);
 
   // Retry loading video if error
   const retryVideo = () => {
