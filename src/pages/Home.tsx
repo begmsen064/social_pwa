@@ -6,6 +6,7 @@ import { useThemeStore } from '../store/themeStore';
 import { supabase } from '../lib/supabase';
 import type { Post } from '../types';
 import PostCard from '../components/PostCard';
+import InstallPrompt from '../components/InstallPrompt';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -323,10 +324,13 @@ const Home = () => {
       ref={containerRef}
       className="min-h-screen overflow-y-auto"
     >
+      {/* Install Prompt */}
+      <InstallPrompt />
+      
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-800">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-          Social PWA
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent" style={{ fontFamily: "'Bungee', system-ui" }}>
+          KUNDUZ
         </h1>
         <div className="flex items-center gap-2">
           {/* Messages */}
