@@ -56,19 +56,38 @@ function App() {
 
   // Handle visibility change (when app returns from background)
   useEffect(() => {
+    let wasHidden = false;
+    
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'hidden') {
+        wasHidden = true;
+      } else if (document.visibilityState === 'visible' && wasHidden) {
         // App returned to foreground
-        console.log('App resumed - refreshing connection');
+        console.log('App resumed - attempting reconnect');
         
-        // Force reconnect Supabase
-        await reconnectSupabase();
+        // Try to reconnect Supabase
+        const reconnected = await reconnectSupabase();
         
-        // Force re-initialize to refresh auth state
-        await initialize();
+        if (!reconnected) {
+          console.log('Reconnect failed - reloading page');
+          // If reconnect fails, force page reload
+          window.location.reload();
+          return;
+        }
+        
+        // Try to re-initialize auth
+        try {
+          await initialize();
+          console.log('Reconnect successful');
+        } catch (error) {
+          console.error('Initialize failed - reloading page', error);
+          window.location.reload();
+          return;
+        }
         
         // Trigger a custom event that pages can listen to
         window.dispatchEvent(new CustomEvent('app-resumed'));
+        wasHidden = false;
       }
     };
 
