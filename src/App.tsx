@@ -54,47 +54,71 @@ function App() {
     }
   }, [theme]);
 
-  // Handle visibility change (when app returns from background)
+  // Handle app resume from background (multiple events for reliability)
   useEffect(() => {
-    let wasHidden = false;
+    let lastResumeTime = Date.now();
+    let isReconnecting = false;
     
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'hidden') {
-        wasHidden = true;
-      } else if (document.visibilityState === 'visible' && wasHidden) {
-        // App returned to foreground
-        console.log('App resumed - attempting reconnect');
-        
+    const handleResume = async (eventName: string) => {
+      // Prevent multiple rapid calls
+      const now = Date.now();
+      if (now - lastResumeTime < 2000 || isReconnecting) {
+        console.log(`Skipping resume (${eventName}) - too soon or already reconnecting`);
+        return;
+      }
+      
+      lastResumeTime = now;
+      isReconnecting = true;
+      
+      console.log(`App resumed via ${eventName} - attempting reconnect`);
+      
+      try {
         // Try to reconnect Supabase
         const reconnected = await reconnectSupabase();
         
         if (!reconnected) {
           console.log('Reconnect failed - reloading page');
-          // If reconnect fails, force page reload
           window.location.reload();
           return;
         }
         
         // Try to re-initialize auth
-        try {
-          await initialize();
-          console.log('Reconnect successful');
-        } catch (error) {
-          console.error('Initialize failed - reloading page', error);
-          window.location.reload();
-          return;
-        }
+        await initialize();
+        console.log('Reconnect successful');
         
         // Trigger a custom event that pages can listen to
         window.dispatchEvent(new CustomEvent('app-resumed'));
-        wasHidden = false;
+      } catch (error) {
+        console.error('Resume failed - reloading page', error);
+        window.location.reload();
+      } finally {
+        isReconnecting = false;
+      }
+    };
+
+    // Multiple event listeners for better coverage
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleResume('visibilitychange');
+      }
+    };
+    
+    const handleFocus = () => handleResume('focus');
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        // Page was restored from bfcache
+        handleResume('pageshow-bfcache');
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('pageshow', handlePageShow);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('pageshow', handlePageShow);
     };
   }, [initialize]);
 
