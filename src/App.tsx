@@ -2,6 +2,7 @@ import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useThemeStore } from './store/themeStore';
+import { reconnectSupabase } from './lib/supabase';
 
 // Components (Keep these eager loaded - small and critical)
 import Layout from './components/Layout';
@@ -55,13 +56,16 @@ function App() {
 
   // Handle visibility change (when app returns from background)
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         // App returned to foreground
         console.log('App resumed - refreshing connection');
         
-        // Force re-initialize to refresh Supabase connection
-        initialize();
+        // Force reconnect Supabase
+        await reconnectSupabase();
+        
+        // Force re-initialize to refresh auth state
+        await initialize();
         
         // Trigger a custom event that pages can listen to
         window.dispatchEvent(new CustomEvent('app-resumed'));
