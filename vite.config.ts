@@ -10,15 +10,15 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Social PWA',
-        short_name: 'SocialPWA',
-        description: 'Instagram-style Progressive Web App',
+        name: 'KUNDUZ',
+        short_name: 'KUNDUZ',
+        description: 'Paylaş, keşfet, etkileş',
         theme_color: '#E11D48',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
-        start_url: '/',
+        start_url: '/home',
         icons: [
           {
             src: 'pwa-192x192.png',
