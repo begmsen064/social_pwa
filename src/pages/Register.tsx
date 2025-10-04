@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Eye, EyeOff, Mail, Lock, UserCheck, CheckCircle, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, UserCheck, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -17,6 +17,9 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+  const termsContentRef = useRef<HTMLDivElement>(null);
   const [validations, setValidations] = useState({
     email: { valid: false, message: '' },
     username: { valid: false, message: '' },
@@ -123,7 +126,13 @@ const Register = () => {
       return;
     }
 
+    // Show terms modal instead of registering immediately
+    setShowTermsModal(true);
+  };
+
+  const handleAcceptTerms = async () => {
     setLoading(true);
+    setShowTermsModal(false);
 
     const { error } = await signUp(
       formData.email,
@@ -143,8 +152,137 @@ const Register = () => {
     }
   };
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 50;
+    if (isAtBottom && !hasScrolledToBottom) {
+      setHasScrolledToBottom(true);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-8">
+    <>
+      {/* Terms and Conditions Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 max-w-2xl w-full max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Kullanım Koşulları</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Lütfen dikkatlice okuyun</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Scrollable Content */}
+            <div 
+              ref={termsContentRef}
+              onScroll={handleScroll}
+              className="flex-1 overflow-y-auto p-6 space-y-4 text-sm text-gray-700 dark:text-gray-300"
+            >
+              <div className="space-y-4">
+                <section>
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">1. Yaş Kısıtlaması</h3>
+                  <p className="leading-relaxed">
+                    ⚠️ <strong className="text-red-600 dark:text-red-400">Bu platform 18 yaşından büyükler için tasarlanmıştır.</strong> 18 yaşından küçükseniz bu platformu kullanamazsınız. Kayıt olarak 18 yaşından büyük olduğunuzu beyan etmiş olursunuz.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">2. İçerik Sorumluluğu</h3>
+                  <p className="leading-relaxed">
+                    <strong>Her kullanıcı kendi paylaştığı içerikten tamamen sorumludur.</strong> Platformda paylaşılan tüm görseller, videolar, yazılar ve diğer içerikler kullanıcılar tarafından oluşturulmuştur. KUNDUZ platformu olarak, kullanıcıların paylaştığı içeriklerden sorumlu değiliz.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">3. Public İçerik</h3>
+                  <p className="leading-relaxed">
+                    Bu platformda paylaşılan tüm içerikler zaten internet ortamında <strong>public (kamuya açık)</strong> olarak bulunmaktadır. Platform, bu içeriklerin paylaşımına sadece aracılık etmektedir. İçeriklerin kaynak ve telif hakları ile ilgili sorumluluk paylaşan kullanıcıya aittir.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">4. Yasadışı İçerik</h3>
+                  <p className="leading-relaxed">
+                    Platformda yasadışı, zararlı, tehdit edici, taciz edici, şiddet içeren, nefret söylemi içeren veya başka şekilde sakıncalı içerik paylaşmak kesinlikle yasaktır. Bu tür içerikleri paylaşan kullanıcılar yasal süreçlerle karşı karşıya kalabilir.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">5. Gizlilik</h3>
+                  <p className="leading-relaxed">
+                    Kişisel verileriniz gizlilik politikamız doğrultusunda işlenir. E-posta adresiniz ve diğer kişisel bilgileriniz üçüncü şahıslarla paylaşılmaz. Ancak paylaştığınız içerikler public olduğu için herkes tarafından görülebilir.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">6. Hesap Güvenliği</h3>
+                  <p className="leading-relaxed">
+                    Hesabınızın güvenliğinden siz sorumlusunuz. Şifrenizi kimseyle paylaşmayın. Hesabınızdan yapılan tüm işlemlerden siz sorumlusunuz.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">7. Platform Hakları</h3>
+                  <p className="leading-relaxed">
+                    KUNDUZ platformu, kullanım koşullarını ihlal eden, yanlış bilgi veren veya platformu kötüye kullanan kullanıcıların hesaplarını askıya alma veya silme hakkını saklı tutar.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">8. Değişiklikler</h3>
+                  <p className="leading-relaxed">
+                    Bu kullanım koşulları zaman zaman güncellenebilir. Değişiklikler platform üzerinden duyurulacaktır. Platformu kullanmaya devam ederek güncellenen koşulları kabul etmiş sayılırsınız.
+                  </p>
+                </section>
+
+                <section className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <h3 className="font-bold text-lg text-yellow-900 dark:text-yellow-200 mb-2">⚠️ Önemli Uyarı</h3>
+                  <p className="leading-relaxed text-yellow-800 dark:text-yellow-300">
+                    Bu koşulları kabul ederek, 18 yaşından büyük olduğunuzu, paylaşacağınız içeriklerden tamamen sorumlu olduğunuzu ve bu platformun bir içerik aracısı olduğunu anlıyor ve kabul ediyorsunuz.
+                  </p>
+                </section>
+              </div>
+            </div>
+
+            {/* Footer with Accept Button */}
+            <div className="p-6 border-t border-gray-200 dark:border-gray-800 space-y-3">
+              {!hasScrolledToBottom && (
+                <p className="text-xs text-center text-amber-600 dark:text-amber-400 flex items-center justify-center gap-2">
+                  <span className="animate-bounce">↓</span>
+                  Lütfen okumak için en alta kadar kaydırın
+                </p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowTermsModal(false);
+                    setHasScrolledToBottom(false);
+                  }}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={handleAcceptTerms}
+                  disabled={!hasScrolledToBottom}
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition"
+                >
+                  Okudum, Kabul Ediyorum
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-8">
       <div className="max-w-md w-full space-y-6">
         {/* Logo/Brand */}
         <div className="text-center">
@@ -373,6 +511,7 @@ const Register = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

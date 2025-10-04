@@ -107,14 +107,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   signUp: async (email, password, username, fullName) => {
     try {
       // Check if username exists
-      const { data: existingUser } = await supabase
+      const { data: existingUsers } = await supabase
         .from('profiles')
         .select('username')
-        .eq('username', username)
-        .single();
+        .eq('username', username);
 
-      if (existingUser) {
-        return { error: { message: 'Username already exists' } };
+      if (existingUsers && existingUsers.length > 0) {
+        return { error: { message: 'Kullanıcı adı zaten kullanılıyor' } };
       }
 
       // Sign up with metadata - trigger will create profile automatically
