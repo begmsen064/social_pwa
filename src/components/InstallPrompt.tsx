@@ -16,33 +16,48 @@ const InstallPrompt = () => {
     const hasSeenPrompt = localStorage.getItem('pwa-install-prompt-seen');
     if (hasSeenPrompt) return;
 
-    // Check if iOS
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    setIsIOS(iOS);
-
-    // Check if already installed
+    // Check if already installed (standalone mode)
     if (window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('Already installed in standalone mode');
       return;
     }
 
-    // For Android/Chrome
+    // Check if running in native app
+    if ((navigator as any).standalone) {
+      console.log('Running in iOS standalone mode');
+      return;
+    }
+
+    // Detect iOS
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(iOS);
+
+    // Detect mobile (Android/iOS)
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    console.log('PWA Install Prompt - Mobile:', isMobile, 'iOS:', iOS);
+
+    // For Android/Chrome - wait for beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('beforeinstallprompt event fired');
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       
       // Show prompt after 3 seconds
       setTimeout(() => {
+        console.log('Showing install prompt (Android)');
         setShowPrompt(true);
       }, 3000);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // For iOS, show after 3 seconds
-    if (iOS) {
+    // ALWAYS show prompt on mobile after 5 seconds (even if beforeinstallprompt doesn't fire)
+    if (isMobile) {
       setTimeout(() => {
+        console.log('Showing install prompt (Mobile - forced)');
         setShowPrompt(true);
-      }, 3000);
+      }, 5000);
     }
 
     return () => {
@@ -73,10 +88,16 @@ const InstallPrompt = () => {
   if (!showPrompt) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50 animate-in slide-in-from-bottom duration-500">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-5 relative overflow-hidden">
+    <div 
+      className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-300"
+      onClick={handleClose}
+    >
+      <div 
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-2 border-primary p-6 relative overflow-hidden max-w-md w-full animate-in zoom-in slide-in-from-bottom duration-500"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Background Gradient */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-primary"></div>
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary via-secondary to-primary animate-pulse"></div>
         
         {/* Close Button */}
         <button
