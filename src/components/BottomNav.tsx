@@ -7,19 +7,19 @@ const BottomNav = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 z-50">
-      <div className="max-w-screen-xl mx-auto px-4">
-        <div className="flex items-center justify-around h-16">
+      <div className="max-w-screen-xl mx-auto px-2">
+        <div className="flex items-center justify-around h-14">
           {/* Home */}
           <Link
             to="/home"
-            className={`flex flex-col items-center justify-center w-16 h-16 transition-colors ${
+            className={`flex flex-col items-center justify-center w-14 h-14 transition-colors ${
               isActive('/home')
                 ? 'text-primary'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
             <svg
-              className="w-7 h-7"
+              className="w-6 h-6"
               fill={isActive('/home') ? 'currentColor' : 'none'}
               stroke="currentColor"
               strokeWidth={isActive('/home') ? '0' : '2'}
@@ -36,14 +36,14 @@ const BottomNav = () => {
           {/* Explore */}
           <Link
             to="/explore"
-            className={`flex flex-col items-center justify-center w-16 h-16 transition-colors ${
+            className={`flex flex-col items-center justify-center w-14 h-14 transition-colors ${
               isActive('/explore')
                 ? 'text-primary'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
             <svg
-              className="w-7 h-7"
+              className="w-6 h-6"
               fill={isActive('/explore') ? 'currentColor' : 'none'}
               stroke="currentColor"
               strokeWidth={isActive('/explore') ? '0' : '2'}
@@ -60,10 +60,10 @@ const BottomNav = () => {
           {/* New Post - Centered highlighted button */}
           <Link
             to="/post/new"
-            className="flex flex-col items-center justify-center w-14 h-14 bg-gradient-to-tr from-primary to-secondary rounded-xl shadow-lg transform hover:scale-105 transition-all"
+            className="flex flex-col items-center justify-center w-12 h-12 bg-gradient-to-tr from-primary to-secondary rounded-xl shadow-lg transform hover:scale-105 transition-all"
           >
             <svg
-              className="w-7 h-7 text-white"
+              className="w-6 h-6 text-white"
               fill="none"
               stroke="currentColor"
               strokeWidth="2.5"
@@ -80,14 +80,14 @@ const BottomNav = () => {
           {/* Leaderboard */}
           <Link
             to="/leaderboard"
-            className={`flex flex-col items-center justify-center w-16 h-16 transition-colors ${
+            className={`flex flex-col items-center justify-center w-14 h-14 transition-colors ${
               isActive('/leaderboard')
                 ? 'text-primary'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
             <svg
-              className="w-7 h-7"
+              className="w-6 h-6"
               fill={isActive('/leaderboard') ? 'currentColor' : 'none'}
               stroke="currentColor"
               strokeWidth={isActive('/leaderboard') ? '0' : '2'}
@@ -108,21 +108,21 @@ const BottomNav = () => {
           {/* Profile */}
           <Link
             to="/profile"
-            className={`flex flex-col items-center justify-center w-16 h-16 transition-colors ${
+            className={`flex flex-col items-center justify-center w-14 h-14 transition-colors ${
               isActive('/profile')
                 ? 'text-primary'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
             <div
-              className={`w-7 h-7 rounded-full border-2 ${
+              className={`w-6 h-6 rounded-full border-2 ${
                 isActive('/profile')
                   ? 'border-primary'
                   : 'border-gray-600 dark:border-gray-400'
               } flex items-center justify-center`}
             >
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4"
                 fill={isActive('/profile') ? 'currentColor' : 'none'}
                 stroke="currentColor"
                 strokeWidth="2"
