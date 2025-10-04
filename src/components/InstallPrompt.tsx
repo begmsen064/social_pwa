@@ -88,67 +88,64 @@ const InstallPrompt = () => {
   if (!showPrompt) return null;
 
   return (
-    <div 
-      className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-300"
-      onClick={handleClose}
-    >
-      <div 
-        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-2 border-primary p-6 relative overflow-hidden max-w-md w-full animate-in zoom-in slide-in-from-bottom duration-500"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Background Gradient */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary via-secondary to-primary animate-pulse"></div>
+    <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 animate-in slide-in-from-bottom duration-500">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-4 relative overflow-hidden max-w-md mx-auto">
+        {/* Background Gradient - Thin line */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary"></div>
         
         {/* Close Button */}
         <button
           onClick={handleClose}
-          className="absolute top-3 right-3 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="absolute top-2 right-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
-          <X className="h-5 w-5 text-gray-500" />
+          <X className="h-4 w-4 text-gray-400" />
         </button>
 
         {/* Content */}
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
-            <Smartphone className="h-6 w-6 text-white" />
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+            <Smartphone className="h-5 w-5 text-white" />
           </div>
           
-          <div className="flex-1 pt-1">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1" style={{ fontFamily: "'Bungee', system-ui" }}>
+          <div className="flex-1 pr-6">
+            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-0.5" style={{ fontFamily: "'Bungee', system-ui" }}>
               KUNDUZ'u Yükle
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Ana ekrana ekleyerek hızlı erişim sağla! 🚀
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Ana ekrana ekle
             </p>
 
-            {isIOS ? (
-              // iOS Instructions
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-xs text-gray-700 dark:text-gray-300 space-y-2">
-                <p className="font-semibold">Ana ekrana eklemek için:</p>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Safari'nin paylaş butonuna bas 📤</li>
-                  <li>"Ana Ekrana Ekle" seçeneğine tıkla</li>
-                  <li>"Ekle" butonuna bas</li>
-                </ol>
-              </div>
-            ) : (
-              // Android/Chrome Install Button
-              <button
-                onClick={handleInstallClick}
-                className="w-full bg-gradient-to-r from-primary to-secondary text-white py-3 px-4 rounded-xl font-bold hover:shadow-xl hover:shadow-primary/30 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                <Download className="h-5 w-5" />
-                Şimdi Yükle
-              </button>
-            )}
-
-            <button
-              onClick={handleClose}
-              className="w-full mt-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-            >
-              Belki Sonra
-            </button>
           </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="mt-3 flex gap-2">
+          {isIOS ? (
+            // iOS - Show info
+            <button
+              onClick={() => alert('Safari paylaş menüsünden "Ana Ekrana Ekle" seçeneğini kullan')}
+              className="flex-1 bg-gradient-to-r from-primary to-secondary text-white py-2 px-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5"
+            >
+              <Download className="h-4 w-4" />
+              Nasıl Yüklenir?
+            </button>
+          ) : (
+            // Android/Chrome Install Button
+            <button
+              onClick={handleInstallClick}
+              className="flex-1 bg-gradient-to-r from-primary to-secondary text-white py-2 px-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5"
+            >
+              <Download className="h-4 w-4" />
+              Yükle
+            </button>
+          )}
+          
+          <button
+            onClick={handleClose}
+            className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-medium"
+          >
+            Sonra
+          </button>
         </div>
       </div>
     </div>
