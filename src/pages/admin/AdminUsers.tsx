@@ -100,8 +100,15 @@ const AdminUsers = () => {
 
   const getAvatarUrl = (avatarUrl: string | null) => {
     if (!avatarUrl) return null;
-    if (avatarUrl.startsWith('http')) return avatarUrl;
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${avatarUrl}`;
+    
+    // Trim whitespace
+    const cleanUrl = avatarUrl.trim();
+    
+    // If already full URL, return it
+    if (cleanUrl.startsWith('http')) return cleanUrl;
+    
+    // If relative path, prepend Supabase URL
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${cleanUrl}`;
   };
 
   return (
